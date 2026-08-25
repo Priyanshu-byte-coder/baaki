@@ -29,7 +29,6 @@ from ..models import (
     Corpus,
     Dispute,
     EntityType,
-    FeeContract,
     InjectedDefect,
     Method,
     Network,
@@ -42,32 +41,14 @@ from ..models import (
     SettlementRow,
     SettlementStatus,
 )
+from ..contract import (
+    DEFAULT_CONTRACTS,
+    INTERNATIONAL_SURCHARGE_BPS,
+    SETTLEMENT_LAG_DAYS,
+    contract_for,
+)
 from ..money import compute_fee, compute_gst
 
-# ---------------------------------------------------------------------------
-# Rate card
-# ---------------------------------------------------------------------------
-
-#: The merchant's contracted rate card. UPI carries nil MDR for person-to-
-#: merchant transactions in India, which makes *any* fee on a UPI payment a
-#: finding rather than a rounding argument. RuPay is priced below the
-#: international schemes, and Amex above them. Reconciling a fee therefore
-#: requires looking up (method, network, international) -- not a flat rate.
-DEFAULT_CONTRACTS: list[FeeContract] = [
-    FeeContract(Method.UPI, Network.NONE, rate_bps=0, fixed_paise=0),
-    FeeContract(Method.NETBANKING, Network.NONE, rate_bps=190, fixed_paise=0),
-    FeeContract(Method.WALLET, Network.NONE, rate_bps=200, fixed_paise=0),
-    FeeContract(Method.CARD, Network.RUPAY, rate_bps=100, fixed_paise=0),
-    FeeContract(Method.CARD, Network.VISA, rate_bps=200, fixed_paise=0),
-    FeeContract(Method.CARD, Network.MASTERCARD, rate_bps=200, fixed_paise=0),
-    FeeContract(Method.CARD, Network.AMEX, rate_bps=300, fixed_paise=0),
-]
-
-#: Cross-border transactions carry a surcharge on top of the domestic rate.
-INTERNATIONAL_SURCHARGE_BPS = 130
-
-#: Contracted settlement window. Capture on day T lands in the bank on T+2.
-SETTLEMENT_LAG_DAYS = 2
 
 METHOD_WEIGHTS = [(Method.UPI, 0.62), (Method.CARD, 0.24), (Method.NETBANKING, 0.09), (Method.WALLET, 0.05)]
 CARD_NETWORK_WEIGHTS = [
@@ -80,15 +61,6 @@ CARD_NETWORK_WEIGHTS = [
 BANK_CODES = ["HDFC", "ICIC", "UTIB", "SBIN", "KKBK"]
 
 
-def contract_for(
-    contracts: list[FeeContract], method: Method, network: Network, international: bool
-) -> tuple[int, int]:
-    """Return the ``(rate_bps, fixed_paise)`` the merchant actually signed for."""
-    for c in contracts:
-        if c.method is method and c.network is network:
-            rate = c.rate_bps + (INTERNATIONAL_SURCHARGE_BPS if international else 0)
-            return rate, c.fixed_paise
-    raise KeyError(f"no contracted rate for {method.value}/{network.value}")
 
 
 # ---------------------------------------------------------------------------

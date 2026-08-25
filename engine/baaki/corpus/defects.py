@@ -42,7 +42,8 @@ from ..models import (
     SettlementStatus,
 )
 from ..money import compute_fee, compute_gst
-from .generate import Generated, contract_for, rebalance
+from ..contract import contract_for
+from .generate import Generated, rebalance
 
 
 class Injector:

@@ -95,6 +95,7 @@ def run(
     corpus_dir: Path = typer.Option(..., "--corpus", help="directory written by generate"),
     tail: bool = typer.Option(False, "--tail/--no-tail", help="enable the model stage"),
     ledger_out: Path = typer.Option(None, "--ledger", help="write the decision log here"),
+    report_out: Path = typer.Option(None, "--report", help="write a self-contained HTML statement"),
     limit: int = typer.Option(15, "--limit", help="rows of the exception queue to print"),
 ) -> None:
     """Reconcile a corpus and print what does not add up."""
@@ -164,6 +165,11 @@ def run(
     if ledger_out:
         ledger.write(ledger_out)
         console.print(f"decision log written to [cyan]{ledger_out}[/cyan]")
+    if report_out:
+        from . import report as report_module
+
+        report_module.write(result, corpus, report_out, ledger=ledger)
+        console.print(f"statement written to [cyan]{report_out}[/cyan]")
 
 
 @app.command()

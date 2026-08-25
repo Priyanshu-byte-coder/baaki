@@ -266,7 +266,7 @@ class Injector:
         for settlement in pool:
             if planted >= count:
                 break
-            if not self._claim(settlement.settlement_id):
+            if not self._claim(f"setl:{settlement.settlement_id}"):
                 continue
             delta = -self.rng.randrange(50_00, 5_000_00)
             self._adjust_settlement(settlement.settlement_id, delta)
@@ -398,7 +398,7 @@ class Injector:
         for settlement in pool:
             if planted >= count:
                 break
-            if not self._claim(settlement.settlement_id):
+            if not self._claim(f"setl:{settlement.settlement_id}"):
                 continue
             shift = timedelta(days=extra_days)
             settlement.created_at += shift
@@ -426,11 +426,14 @@ class Injector:
         for settlement in pool:
             if planted >= count:
                 break
-            if not self._claim(settlement.settlement_id):
-                continue
             bank_id = self.g.settlement_to_bank[settlement.settlement_id]
             txn = self.bank_by_id[bank_id]
+            # Guard before claiming. Claiming and then bailing out burns the
+            # reservation on a settlement nothing was planted in, which starves
+            # later injectors of an already scarce pool.
             if txn.credit_paise < 200:
+                continue
+            if not self._claim(f"setl:{settlement.settlement_id}"):
                 continue
 
             first = txn.credit_paise // 3
@@ -469,7 +472,7 @@ class Injector:
         for settlement in pool:
             if planted >= count:
                 break
-            if not self._claim(settlement.settlement_id):
+            if not self._claim(f"setl:{settlement.settlement_id}"):
                 continue
             bank_id = self.g.settlement_to_bank[settlement.settlement_id]
             txn = self.bank_by_id.pop(bank_id)

@@ -144,7 +144,74 @@ gets checked every time.
 
 ---
 
-## 3. Rupee output crashed the Windows console
+## 3. A find-and-replace with `count=1` corrupted the ground truth, and the scorer hid it
+
+**Symptom.** The tail stage run printed `recall 99.2%` alongside `misses 0`.
+Those cannot both be true. Recall is `found / planted`; if nothing was missed,
+recall is 100%.
+
+**Cause, first layer.** Two defects in the injection log shared a
+`(reason, entity)` pair — `PARTIAL_BANK_CREDIT` planted twice on
+`setl_000700030`. Scoring matches on that pair, so the two collapsed into one
+matchable key while `planted` still counted both. The denominator was one
+larger than the number of things that could ever be matched, which caps recall
+below 100% with an empty missed list.
+
+**Cause, second layer.** When I namespaced the claim keys while fixing failure
+1, I applied the rename with a script that used `str.replace(old, new, 1)`.
+Five settlement-scoped injectors contained the byte-identical line
+
+```python
+if not self._claim(settlement.settlement_id):
+```
+
+and only the first was rewritten to `f"setl:{...}"`. The other four kept
+claiming the raw id.
+
+Nothing broke, because the four raw-id claimers were still mutually exclusive
+*with each other* — they all used the same key format. The inconsistency was
+invisible until hard mode added injectors using the `setl:` prefix. Those
+claimed `"setl:setl_000700030"` while `partial_bank_credit` had claimed
+`"setl_000700030"`, so the reservation check compared two different strings,
+found no conflict, and let both plant on the same settlement.
+
+**Why it survived a green test suite.** The isolation test existed and passed.
+It ran `DEFAULT_PLAN` only, where every settlement-scoped injector shared the
+raw format and mutual exclusion still held. The bug lived exactly in the gap
+between the two plans, which is the one combination nothing exercised.
+
+**Fix.** Three separate changes, because there were three separate defects:
+
+1. Namespace all five call sites, with a replace that has no count argument.
+2. `partial_bank_credit` claimed its settlement *before* checking the credit
+   was large enough to split, then bailed out — burning a reservation on a
+   settlement it planted nothing in. Guard first, claim second.
+3. **The scorer now refuses to score a corrupt ground truth.** Duplicate
+   `(reason, entity)` keys raise instead of quietly deflating recall.
+
+That third one matters most. The first two were ordinary bugs. The third is
+the reason I saw this at all: the number was *wrong in a way that was visible*
+only because I printed misses next to recall. Had the report shown recall
+alone, 99.2% would have looked like an honest result and I would have shipped
+it.
+
+**What stops it recurring.** `test_no_two_defects_share_a_reason_and_entity` is
+parametrised across both plans and all seven sweep seeds — fourteen
+combinations, where the old test covered one. The scorer raising on duplicates
+means the failure is now loud at the point of measurement, not silent.
+
+**The transferable lesson, and it is not "be careful with replace".** It is
+that a metric which can only be checked against itself will not tell you when
+it is broken. Recall looked plausible. It took a second, redundant number
+printed beside it — the missed list — for the contradiction to become visible.
+Every headline number in `EVAL.md` now has a companion that must agree with it:
+recall against misses, precision against the false-positive list, money
+identified against money planted. Redundancy in a report is not clutter; it is
+the only error detection a metric has.
+
+---
+
+## 4. Rupee output crashed the Windows console
 
 **Symptom.** The first smoke test of the money formatter died on
 `UnicodeEncodeError: 'charmap' codec can't encode character '₹'`.

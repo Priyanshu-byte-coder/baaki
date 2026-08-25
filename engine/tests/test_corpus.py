@@ -11,9 +11,11 @@ from collections import Counter, defaultdict
 
 import pytest
 
-from baaki.corpus.defects import DEFAULT_PLAN, inject
+from baaki.corpus.defects import DEFAULT_PLAN, HARD_PLAN, inject
 from baaki.corpus.generate import generate
 from baaki.models import PaymentStatus, Reason
+
+ALL_PLANS = [("default", DEFAULT_PLAN), ("hard", HARD_PLAN)]
 
 ORDERS = 2_000
 SEED = 7
@@ -142,6 +144,28 @@ def test_every_injector_plants_its_full_requested_count(faulted):
 def test_injection_is_isolated_to_one_defect_per_entity(faulted):
     counts = Counter(d.entity_id for d in faulted.truth)
     assert [entity for entity, n in counts.items() if n > 1] == []
+
+
+@pytest.mark.parametrize("plan_name,plan", ALL_PLANS)
+@pytest.mark.parametrize("seed", [7, 13, 21, 34, 55, 89, 101])
+def test_no_two_defects_share_a_reason_and_entity(plan_name, plan, seed):
+    """Ground truth must never contain the same (reason, entity) twice.
+
+    Scoring matches on that pair, so a duplicate inflates the denominator past
+    the number of things that can ever be matched: recall is capped below 100%
+    while the missed list stays empty. The report contradicts itself and still
+    looks plausible.
+
+    This is parametrised over both plans and every seed in the sweep because
+    the bug that motivated it only appeared under hard mode. A bulk rename of
+    the claim keys had been applied with ``count=1`` and namespaced one of five
+    identical call sites; the four that kept the raw settlement id stayed
+    mutually exclusive among themselves, so nothing failed until hard mode's
+    ``setl:``-prefixed injectors arrived and collided with them invisibly.
+    """
+    g = inject(generate(seed=seed, n_orders=1_500), seed=seed, plan=plan)
+    keys = Counter((d.reason.value, d.entity_id) for d in g.truth)
+    assert [k for k, n in keys.items() if n > 1] == []
 
 
 def test_only_declared_mismatches_break_the_header_invariant(faulted):

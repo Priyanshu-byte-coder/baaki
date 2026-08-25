@@ -96,12 +96,31 @@ def score(findings: list[Finding], truth: list[InjectedDefect]) -> Score:
         result.by_reason[reason] = ReasonScore(reason=reason)
 
     truth_by_key: dict[tuple[str, str], InjectedDefect] = {}
+    collisions: list[tuple[str, str]] = []
     for defect in truth:
         key = (defect.reason.value, defect.entity_id)
+        if key in truth_by_key:
+            collisions.append(key)
         truth_by_key[key] = defect
         bucket = result.by_reason[defect.reason]
         bucket.planted += 1
         bucket.planted_paise += defect.impact_paise
+
+    if collisions:
+        # Refuse to score rather than report a number that cannot be right.
+        #
+        # ``planted`` counts every defect while matching is keyed on
+        # (reason, entity). Two defects sharing a key make the denominator
+        # larger than the number of things that can ever be matched, so recall
+        # is capped below 100% while the missed list stays empty -- a report
+        # that is internally contradictory and still looks plausible. This
+        # actually happened: two injectors planted PARTIAL_BANK_CREDIT on one
+        # settlement and the run read 99.2% recall with zero misses.
+        raise ValueError(
+            f"ground truth contains {len(collisions)} duplicate (reason, entity) "
+            f"key(s), e.g. {collisions[:3]}. Two injectors planted the same defect "
+            f"on the same entity; fix the claim namespacing rather than the scorer."
+        )
 
     # Deduplicate findings first: two reports of the same (reason, entity) are
     # one finding to an analyst, and counting them twice would flatter recall.

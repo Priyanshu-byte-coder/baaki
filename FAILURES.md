@@ -74,7 +74,77 @@ namespace, the scarce one is the budget, and it runs out first.
 
 ---
 
-## 2. Rupee output crashed the Windows console
+## 2. The matcher closed a ₹1,10,272 settlement against a ₹36,757 credit, at full confidence
+
+**Symptom.** With the bank-matching stage wired up, the scoreboard read 98.4%
+recall and 98.4% precision. Two false positives, both bank credits reported as
+unidentified, and two missed `PARTIAL_BANK_CREDIT` defects. Four errors, and the
+counts on each side matching that neatly is usually one bug wearing two hats.
+
+**Cause.** It was. The first matching pass recovers a UTR from the bank
+narration and joins it to the settlement quoting the same UTR:
+
+```python
+for candidate in extract_utrs(txn.narration):
+    owners = by_utr.get(candidate)
+    if owners and len(owners) == 1 and owners[0] in self.open_settlements:
+        self._commit(owners[0], [bank_id], "exact_utr", 1.00)
+        break
+```
+
+When a settlement is paid out as two bank credits, **both credits quote the same
+UTR** — they are two halves of one transfer. This loop took whichever half it
+reached first, committed the settlement against it at confidence `1.00`, removed
+the settlement from the open set, and moved on. The other half then matched
+nothing and was reported as an unidentified credit.
+
+Concretely, on seed 7: settlement `setl_000700030`, net **₹1,10,272.41**, was
+marked reconciled against a single credit of **₹36,757.47**. The engine declared
+that settlement fully accounted for while ₹73,514.94 of it sat unexplained three
+rows further down the same statement.
+
+**Why this is the worst bug in the project so far.** Every other defect makes
+the queue longer. This one makes it *shorter*, and wrongly. The finding that
+should have said "₹73,514 of this settlement never arrived" was instead a green
+tick plus an unrelated-looking orphan credit that an analyst would plausibly
+write off as someone else's transfer. It also carried `confidence = 1.00`, so
+nothing downstream had any reason to question it. This is precisely the failure
+mode the module docstring was written to warn about, and I shipped it into the
+pass I trusted most.
+
+**Cause behind the cause.** Matching on an identifier proves two records *refer*
+to each other. It does not prove the money arrived. I had treated a strong
+reference match as sufficient and never asserted the amounts agreed, because on
+the happy path they always do — a settlement has one credit, the credit is the
+full value, and the check looks redundant. It is redundant right up until the
+one-to-one assumption fails, which is exactly the case the pass most needed to
+handle correctly.
+
+**Fix.** Reference resolution now gathers *every* open credit quoting a
+reference and commits the group only if it sums to the settlement net:
+
+- sum equals net, one credit → an ordinary match
+- sum equals net, several credits → a split payout, reported as
+  `PARTIAL_BANK_CREDIT`
+- sum does not equal net → nothing is committed. The settlement stays open for
+  later passes, and the group is pushed onto the ambiguous residue for a human
+  or the LLM stage. A right reference with the wrong money is a question, not
+  an answer.
+
+That single change took the run from 98.4/98.4 to 100/100 on seed 7, because
+both the false positives and both the missed splits were this one defect.
+
+**What stops it recurring.** The rule is now stated once, in
+`_resolve_by_reference`, and both UTR passes go through it — there is no second
+place to forget the amount check. The invariant to hold onto: **no pass may
+close a settlement without demonstrating that the credits it matched sum to the
+settlement value.** Confidence describes how sure the engine is that it found
+the right records, never that the money is right; the money is arithmetic and
+gets checked every time.
+
+---
+
+## 3. Rupee output crashed the Windows console
 
 **Symptom.** The first smoke test of the money formatter died on
 `UnicodeEncodeError: 'charmap' codec can't encode character '₹'`.

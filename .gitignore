@@ -16,3 +16,5 @@ data/generated/
 data/runs/
 out/
 .DS_Store
+data/generated/
+data/runs/

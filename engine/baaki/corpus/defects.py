@@ -488,6 +488,168 @@ class Injector:
             planted += 1
 
 
+    # -- hard mode ----------------------------------------------------------
+    #
+    # The injectors above plant defects. These plant *ambiguity*: situations
+    # where the evidence genuinely underdetermines the answer and the correct
+    # behaviour is to refuse to match rather than to pick the likelier option.
+    # They exist because an engine scoring 100% against easy books has been
+    # graded by a weak adversary, not proved correct.
+
+    def coincident_noise_credit(self, count: int) -> None:
+        """A credit from elsewhere that exactly matches an open settlement.
+
+        Aimed squarely at the value-and-date pass. A settlement whose narration
+        carries no recoverable reference is matched on amount and day; if an
+        unrelated credit of the same value lands the same day there are two
+        candidates and nothing to separate them. Picking either is a coin flip
+        that can end with a real settlement marked reconciled against someone
+        else's money.
+
+        The uniqueness guard must refuse. Refusing costs an analyst a look;
+        guessing costs the settlement.
+        """
+        pool = self._paid_settlements()
+        self.rng.shuffle(pool)
+        planted = 0
+        for settlement in pool:
+            if planted >= count:
+                break
+            bank_id = self.g.settlement_to_bank[settlement.settlement_id]
+            txn = self.bank_by_id[bank_id]
+            # Only bites where the narration carries no usable reference.
+            if settlement.utr and settlement.utr.upper() in txn.narration.upper():
+                continue
+            if not self._claim(f"setl:{settlement.settlement_id}"):
+                continue
+
+            twin = BankTxn(
+                bank_txn_id=f"{txn.bank_txn_id}c",
+                value_date=txn.value_date,
+                narration=(
+                    f"NEFT-{self.rng.randrange(10**11, 10**12)}-ARORA TEXTILES "
+                    f"PRIVATE LIMITED-INV{self.rng.randrange(1000, 9999)}"
+                ),
+                credit_paise=txn.credit_paise,
+                debit_paise=0,
+                balance_paise=0,
+            )
+            self.corpus.bank_txns.append(twin)
+            self.bank_by_id[twin.bank_txn_id] = twin
+
+            self._record(
+                Reason.BANK_CREDIT_UNIDENTIFIED,
+                "bank_txn",
+                twin.bank_txn_id,
+                twin.credit_paise,
+                "Unrelated credit coinciding in value and date with a settlement.",
+            )
+            planted += 1
+
+    def utr_prefix_collision(self, count: int) -> None:
+        """Two settlements whose references share a truncation-length prefix.
+
+        A bank that truncates the reference to sixteen characters collapses two
+        distinct UTRs into one token. The prefix pass must notice the token
+        resolves to more than one settlement and decline, leaving value and
+        date to separate them.
+
+        No ground truth is recorded, because nothing here is a defect. It is a
+        trap, and the engine passes it by not falling in.
+        """
+        pool = [s for s in self._paid_settlements() if s.utr]
+        self.rng.shuffle(pool)
+        planted = 0
+        for first, second in zip(pool[0::2], pool[1::2]):
+            if planted >= count:
+                break
+            if not self._claim(f"setl:{first.settlement_id}", f"setl:{second.settlement_id}"):
+                continue
+
+            second.utr = first.utr[:16] + str(self.rng.randrange(10**5, 10**6))
+            for settlement in (first, second):
+                bank_id = self.g.settlement_to_bank[settlement.settlement_id]
+                self.bank_by_id[bank_id].narration = (
+                    f"NEFT-{settlement.utr[:16]}-RAZORPAY SOFT"
+                )
+            planted += 1
+
+    def corrupted_reference(self, count: int) -> None:
+        """A reference mangled the way a statement export mangles one.
+
+        Letter O for zero, letter I for one. The token still looks like a UTR
+        and still equals none of them, so both reference passes come up empty
+        and the engine has to degrade to value and date rather than report the
+        settlement as missing.
+        """
+        pool = [s for s in self._paid_settlements() if s.utr]
+        self.rng.shuffle(pool)
+        planted = 0
+        for settlement in pool:
+            if planted >= count:
+                break
+            if not self._claim(f"setl:{settlement.settlement_id}"):
+                continue
+            bank_id = self.g.settlement_to_bank[settlement.settlement_id]
+            txn = self.bank_by_id[bank_id]
+            mangled = settlement.utr.replace("0", "O").replace("1", "I")
+            txn.narration = txn.narration.replace(settlement.utr, mangled)
+            txn.narration = txn.narration.replace(settlement.utr[:16], mangled[:16])
+            planted += 1
+
+    def oversized_split(self, count: int, parts: int = 4) -> None:
+        """A payout split into more parts than the bounded search will consider.
+
+        :data:`baaki.match.fuzzy.MAX_SPLIT_PARTS` caps combination search at
+        three, because past that the search space grows faster than the
+        evidence does. A four-way split is therefore outside what the
+        algorithmic stage can close, by construction.
+
+        Left deliberately unwinnable for stage two. It is the case the tail
+        model exists for: a model can look at four credits and propose that
+        they belong together, and the guardrail then verifies the sum
+        arithmetically before the proposal counts for anything. The model
+        supplies the hypothesis; the arithmetic supplies the proof.
+        """
+        pool = self._paid_settlements()
+        self.rng.shuffle(pool)
+        planted = 0
+        for settlement in pool:
+            if planted >= count:
+                break
+            bank_id = self.g.settlement_to_bank[settlement.settlement_id]
+            txn = self.bank_by_id[bank_id]
+            if txn.credit_paise < parts * 100:
+                continue
+            if not self._claim(f"setl:{settlement.settlement_id}"):
+                continue
+
+            share = txn.credit_paise // parts
+            remainder = txn.credit_paise - share * (parts - 1)
+            txn.credit_paise = share
+            for n in range(1, parts):
+                value = share if n < parts - 1 else remainder
+                sibling = BankTxn(
+                    bank_txn_id=f"{txn.bank_txn_id}p{n}",
+                    value_date=txn.value_date,
+                    narration=f"{txn.narration}-PART{n + 1}",
+                    credit_paise=value,
+                    debit_paise=0,
+                    balance_paise=0,
+                )
+                self.corpus.bank_txns.append(sibling)
+                self.bank_by_id[sibling.bank_txn_id] = sibling
+
+            self._record(
+                Reason.PARTIAL_BANK_CREDIT,
+                "settlement",
+                settlement.settlement_id,
+                0,
+                f"Paid out as {parts} credits, beyond the bounded search cap.",
+            )
+            planted += 1
+
+
 #: Default fault load for a month of books. Roughly one defect per 120 records,
 #: which is heavier than a healthy merchant but keeps every reason code
 #: populated enough for per-code recall to carry a meaningful denominator.
@@ -513,6 +675,25 @@ DEFAULT_PLAN: dict[str, int] = {
     "settlement_on_hold": 2,
     "late_settlement": 3,
     "partial_bank_credit": 3,
+}
+
+#: Hard mode: the same defects, plus the ambiguity traps.
+#:
+#: Reported separately in ``EVAL.md``, because the two plans measure different
+#: things. The default plan asks whether the engine finds defects. Hard mode
+#: asks whether it knows when to stop -- whether it declines the coin flip,
+#: and whether it escalates the split it cannot search rather than declaring
+#: the money missing.
+#:
+#: The trap injectors run last, after ``partial_bank_credit``, for the same
+#: reason it runs last in the default plan: they change how many bank lines a
+#: settlement maps to.
+HARD_PLAN: dict[str, int] = {
+    **DEFAULT_PLAN,
+    "coincident_noise_credit": 3,
+    "utr_prefix_collision": 2,
+    "corrupted_reference": 3,
+    "oversized_split": 2,
 }
 
 

@@ -28,6 +28,13 @@ how sure it is will answer fluently and without calibration, and in a system
 that moves money that number is worse than no number, because it looks like
 evidence. Confidence here is computed from which checks passed.
 
+The first live call made against this pipeline asked the tail model which model
+family it belonged to. It answered ``"GPT-4"``, fluently, in valid JSON, and
+incorrectly -- it is ``gpt-oss-120b``. That is the whole argument in one
+response: the output was well-formed, confident and wrong, and no amount of
+schema validation would have caught it. Only checking a claim against something
+external does.
+
 The grounding and self-check approach is carried over from the guardrail layer
 of my HelioOps project, where the lesson was that a citation which does not
 resolve to something actually retrieved is the single best hallucination

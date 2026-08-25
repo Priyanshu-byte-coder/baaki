@@ -21,6 +21,7 @@ out, on any machine.
 from __future__ import annotations
 
 import random
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
 from ..models import (
@@ -138,6 +139,21 @@ def _make_utr(rng: random.Random, when: date) -> str:
     return f"{bank}N{when:%Y%m%d}{seq}"
 
 
+@dataclass(slots=True)
+class Generated:
+    """A generated corpus plus everything only the adversary is allowed to know.
+
+    ``settlement_to_bank`` is the true linkage between a settlement and the bank
+    line that paid it. The fault injector needs it to mutate both sides of a
+    defect coherently. **No matcher may read it** -- rediscovering this mapping
+    from amounts, dates and narration text is the entire job being evaluated.
+    """
+
+    corpus: Corpus
+    truth: list[InjectedDefect] = field(default_factory=list)
+    settlement_to_bank: dict[str, str] = field(default_factory=dict)
+
+
 def _weighted(rng: random.Random, weights: list[tuple]) -> object:
     roll = rng.random()
     cumulative = 0.0
@@ -170,7 +186,7 @@ def generate(
     dispute_rate: float = 0.004,
     failure_rate: float = 0.11,
     noise_credits: int = 18,
-) -> tuple[Corpus, list[InjectedDefect]]:
+) -> Generated:
     """Generate one internally consistent month of books.
 
     Returns the corpus and the ground-truth findings that a correct engine must
@@ -358,7 +374,7 @@ def generate(
     # coherent, the way a downloaded statement would be. Each line carries the
     # index of the ground-truth finding it belongs to (or ``None``), so the
     # link survives the sort instead of being re-derived from the narration.
-    lines: list[tuple[date, str, int, int, int | None]] = []
+    lines: list[tuple[date, str, int, int, int | None, str | None]] = []
 
     for settlement in corpus.settlements:
         if settlement.net_paise <= 0:
@@ -367,7 +383,16 @@ def generate(
         _style, template = rng.choice(NARRATION_TEMPLATES)
         utr = settlement.utr or ""
         narration = template.format(utr=utr, utr_trunc=utr[:16])
-        lines.append((settlement.created_at.date(), narration, settlement.net_paise, 0, None))
+        lines.append(
+            (
+                settlement.created_at.date(),
+                narration,
+                settlement.net_paise,
+                0,
+                None,
+                settlement.settlement_id,
+            )
+        )
 
     for n in range(noise_credits):
         when = month_start + timedelta(days=rng.randrange(days))
@@ -388,11 +413,12 @@ def generate(
                 note="Credit from a source other than the gateway.",
             )
         )
-        lines.append((when, narration, amount, 0, len(truth) - 1))
+        lines.append((when, narration, amount, 0, len(truth) - 1, None))
 
     lines.sort(key=lambda row: (row[0], row[1], row[2]))
     balance = 5_000_000
-    for n, (value_date, narration, credit, debit, truth_idx) in enumerate(lines):
+    settlement_to_bank: dict[str, str] = {}
+    for n, (value_date, narration, credit, debit, truth_idx, settlement_id) in enumerate(lines):
         balance += credit - debit
         txn = BankTxn(
             bank_txn_id=f"bank_{seed:04d}{n:06d}",
@@ -405,5 +431,22 @@ def generate(
         corpus.bank_txns.append(txn)
         if truth_idx is not None:
             truth[truth_idx].entity_id = txn.bank_txn_id
+        if settlement_id is not None:
+            settlement_to_bank[settlement_id] = txn.bank_txn_id
 
-    return corpus, truth
+    return Generated(corpus=corpus, truth=truth, settlement_to_bank=settlement_to_bank)
+
+
+def rebalance(corpus: Corpus) -> None:
+    """Recompute bank value dates ordering and the running balance column.
+
+    Fault injection mutates credits, deletes lines and splits others. Rather
+    than have every injector maintain the balance column itself, they mutate
+    freely and this runs once at the end, the way a bank would reissue a
+    statement.
+    """
+    corpus.bank_txns.sort(key=lambda b: (b.value_date, b.narration, b.credit_paise))
+    balance = 5_000_000
+    for txn in corpus.bank_txns:
+        balance += txn.credit_paise - txn.debit_paise
+        txn.balance_paise = balance

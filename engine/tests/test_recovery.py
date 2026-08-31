@@ -208,13 +208,55 @@ def test_the_loop_detects_what_the_gateway_actually_repaid():
         ledger, seed=SEED + 1, month_start=AUGUST, label="2026-08",
         n_orders=ORDERS, plan=HARD_PLAN,
     )
-    verify_mod.verify(ledger, cycle2.generated.corpus, on=date(2026, 8, 31))
-    score = verify_mod.score_recovery(cycle2, ledger)
+    report = verify_mod.verify(ledger, cycle2.generated.corpus, on=date(2026, 8, 31))
+    score = verify_mod.score_recovery(cycle2, ledger, report)
 
     assert score["repaid_claims"] > 0, "the fixture should repay something"
     assert score["false_positives"] == 0
     assert score["detection_rate"] == 1.0
     assert score["detected_paise"] == score["repaid_paise"]
+
+
+def test_scoring_a_later_cycle_does_not_blame_it_for_earlier_recoveries():
+    """Regression: the ledger is cumulative, a settlement period is not.
+
+    Scoring cycle three against every claim the ledger has ever recovered
+    counts all of cycle two's genuine recoveries as false positives. The
+    two-cycle test could not catch this -- there was no earlier cycle to be
+    wrongly blamed for -- so it took a three-cycle run to surface, reporting
+    thirty-three phantom false recoveries.
+    """
+    ledger = Ledger()
+    period = JULY
+    seen_false_positives = []
+
+    for index in range(3):
+        if index == 0:
+            g = inject(
+                generate(seed=SEED, n_orders=ORDERS, month_start=period),
+                seed=SEED,
+                plan=HARD_PLAN,
+            )
+            cycle = None
+        else:
+            cycle = next_cycle(
+                ledger, seed=SEED + index, month_start=period,
+                label=f"{period:%Y-%m}", n_orders=ORDERS, plan=HARD_PLAN,
+            )
+            g = cycle.generated
+
+        result = pipeline.run_offline(g.corpus)
+        if cycle is not None:
+            closing = date(period.year, period.month, 28)
+            report = verify_mod.verify(ledger, g.corpus, on=closing)
+            score = verify_mod.score_recovery(cycle, ledger, report)
+            seen_false_positives.append(score["false_positives"])
+
+        ledger.open_from_findings(result.findings, on=period, cycle=f"{period:%Y-%m}")
+        triage_mod.triage(ledger, on=period)
+        period = date(period.year + (period.month == 12), (period.month % 12) + 1, 1)
+
+    assert seen_false_positives == [0, 0], seen_false_positives
 
 
 def test_only_filed_claims_can_be_repaid():

@@ -48,6 +48,14 @@ class VerifyReport:
     recovered_paise: int = 0
     partial: int = 0
 
+    #: What *this* run settled, as ``claim_id -> paise found in this period``.
+    #:
+    #: Needed because the ledger is cumulative while a period is not. Scoring a
+    #: third cycle against the whole ledger counts every claim recovered in the
+    #: second as a false positive, which is how this started life reporting
+    #: thirty-three phantom errors.
+    settled: dict[str, int] = field(default_factory=dict)
+
     @property
     def matched(self) -> int:
         return self.matched_by_reference + self.matched_by_value
@@ -110,6 +118,7 @@ def verify(ledger: Ledger, corpus: Corpus, *, on: date) -> VerifyReport:
         )
         report.matched_by_reference += 1
         report.recovered_paise += amount
+        report.settled[claim.claim_id] = report.settled.get(claim.claim_id, 0) + amount
         if not full:
             report.partial += 1
         outstanding.remove(claim)
@@ -150,6 +159,7 @@ def verify(ledger: Ledger, corpus: Corpus, *, on: date) -> VerifyReport:
         )
         report.matched_by_value += 1
         report.recovered_paise += amount
+        report.settled[claim.claim_id] = report.settled.get(claim.claim_id, 0) + amount
         if not full:
             report.partial += 1
         outstanding.remove(claim)
@@ -170,36 +180,36 @@ def verify(ledger: Ledger, corpus: Corpus, *, on: date) -> VerifyReport:
     return report
 
 
-def score_recovery(cycle, ledger: Ledger) -> dict:
-    """Score the verifier against what the generator actually repaid.
+def score_recovery(cycle, ledger: Ledger, report: VerifyReport) -> dict:
+    """Score the verifier against what the generator actually repaid *this period*.
 
     The verifier never sees ``cycle.repaid``. This asks the only question that
     matters about a recovery loop: of the money that genuinely came back, how
     much did we correctly attribute -- and did we ever mark something recovered
     that was not?
+
+    Scoped to ``report.settled`` rather than the whole ledger. The ledger
+    accumulates across periods while a period's repayments do not, so scoring
+    cycle three against every claim ever recovered counts all of cycle two's
+    genuine recoveries as false positives.
     """
     truth = cycle.repaid
     truth_total = sum(truth.values())
+    settled = report.settled
 
-    found = 0
     correct = 0
-    false_positive = 0
+    found = 0
     missed: list[str] = []
 
     for claim_id, repaid in truth.items():
-        claim = ledger.claims.get(claim_id)
-        if claim is None:
-            missed.append(claim_id)
-            continue
-        if claim.recovered_paise > 0:
+        detected = settled.get(claim_id, 0)
+        if detected > 0:
             correct += 1
-            found += min(claim.recovered_paise, repaid)
+            found += min(detected, repaid)
         else:
             missed.append(claim_id)
 
-    for claim in ledger.claims.values():
-        if claim.recovered_paise > 0 and claim.claim_id not in truth:
-            false_positive += 1
+    false_positives = [cid for cid in settled if cid not in truth]
 
     return {
         "repaid_claims": len(truth),
@@ -207,7 +217,7 @@ def score_recovery(cycle, ledger: Ledger) -> dict:
         "detected_claims": correct,
         "detected_paise": found,
         "missed_claims": len(missed),
-        "false_positives": false_positive,
+        "false_positives": len(false_positives),
         "detection_rate": (correct / len(truth)) if truth else 1.0,
         "value_rate": (found / truth_total) if truth_total else 1.0,
     }

@@ -244,6 +244,123 @@ def verify(
 
 
 @app.command()
+def cycle(
+    seed: int = typer.Option(34, "--seed"),
+    orders: int = typer.Option(4_000, "--orders"),
+    cycles: int = typer.Option(2, "--cycles", help="settlement periods to run"),
+    out: Path = typer.Option(Path("data/runs/loop"), "--out"),
+    report_out: Path = typer.Option(None, "--report", help="HTML recovery statement"),
+) -> None:
+    """Run the recovery loop across consecutive settlement periods.
+
+    Cycle one finds the money, prices each claim and files what is worth
+    filing. Every cycle after that goes looking for the adjustment lines that
+    repay what was filed, and reports what actually came back.
+    """
+    from datetime import date
+
+    from .corpus.defects import HARD_PLAN, inject
+    from .corpus.generate import generate
+    from .corpus.periods import month_after, next_cycle
+    from .recovery import triage as triage_mod
+    from .recovery import verify as verify_mod
+    from .recovery.claims import Ledger as ClaimLedger
+
+    ledger = ClaimLedger()
+    period = date(2026, 7, 1)
+    last_corpus = None
+    scores = []
+
+    for index in range(cycles):
+        label = f"{period:%Y-%m}"
+        if index == 0:
+            g = inject(
+                generate(seed=seed, n_orders=orders, month_start=period),
+                seed=seed,
+                plan=HARD_PLAN,
+            )
+            period_cycle = None
+        else:
+            period_cycle = next_cycle(
+                ledger, seed=seed + index, month_start=period, label=label,
+                n_orders=orders, plan=HARD_PLAN,
+            )
+            g = period_cycle.generated
+
+        result = pipeline.run_offline(g.corpus)
+        last_corpus, last_result = g.corpus, result
+
+        console.print(
+            f"\n[bold]{label}[/bold]  {g.corpus.record_count():,} records, "
+            f"{len(result.findings)} exceptions, {result.elapsed_total:.2f}s"
+        )
+
+        if period_cycle is not None:
+            closing = month_after(period) - __import__("datetime").timedelta(days=1)
+            report = verify_mod.verify(ledger, g.corpus, on=closing)
+            console.print(
+                f"  recovered [bold green]{rupees(report.recovered_paise)}[/bold green] "
+                f"({report.matched_by_reference} by reference, "
+                f"{report.matched_by_value} by value, {report.partial} partial, "
+                f"{len(report.ambiguous)} left open, {len(report.written_off)} written off)"
+            )
+            scores.append(verify_mod.score_recovery(period_cycle, ledger, report))
+
+        opened = ledger.open_from_findings(result.findings, on=period, cycle=label)
+        outcome = triage_mod.triage(ledger, on=period)
+        console.print(
+            f"  opened {len(opened)} claims · filed {rupees(outcome['filed_paise'])} · "
+            f"not pursued {rupees(outcome['dropped_paise'])} "
+            f"({len(outcome['dropped'])} claims) · {len(outcome['explored'])} probe(s)"
+        )
+        period = month_after(period)
+
+    totals = ledger.totals()
+    console.print()
+    board = Table(title="recovery board", title_justify="left", header_style="bold")
+    for column in ("reason", "claims", "claimed", "recovered", "rate"):
+        board.add_column(column, justify="right" if column != "reason" else "left")
+    for reason, row in sorted(
+        ledger.recovery_by_reason().items(), key=lambda kv: -kv[1]["claimed_paise"]
+    ):
+        board.add_row(
+            reason, str(row["claims"]), rupees(row["claimed_paise"]),
+            rupees(row["recovered_paise"]), f"{100 * row['rate']:.0f}%",
+        )
+    console.print(board)
+
+    console.print(
+        f"\nclaimed [bold]{rupees(totals['claimed_paise'])}[/bold] · "
+        f"recovered [bold green]{rupees(totals['recovered_paise'])}[/bold green] · "
+        f"outstanding {rupees(totals['outstanding_paise'])}"
+    )
+    console.print(
+        f"recovery rate on pursued claims: "
+        f"[bold]{100 * totals['recovery_rate']:.1f}%[/bold]  ·  states {totals['by_state']}"
+    )
+    if scores:
+        detected = sum(s["detected_paise"] for s in scores)
+        repaid = sum(s["repaid_paise"] for s in scores)
+        false_positives = sum(s["false_positives"] for s in scores)
+        console.print(
+            f"[dim]verifier: detected {rupees(detected)} of {rupees(repaid)} actually "
+            f"repaid, {false_positives} false recoveries[/dim]"
+        )
+
+    path = ledger.save(out / "claims.json")
+    console.print(f"claim ledger written to [cyan]{path}[/cyan]")
+
+    if report_out and last_corpus is not None:
+        from . import report as report_module
+
+        report_module.write(
+            last_result, last_corpus, report_out, ledger=None, claims=ledger,
+            title="Baaki Recovery Board",
+        )
+        console.print(f"statement written to [cyan]{report_out}[/cyan]")
+
+
+@app.command()
 def doctor() -> None:
     """Report what is configured and what will therefore be skipped."""
     _load_env()

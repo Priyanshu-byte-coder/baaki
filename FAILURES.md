@@ -211,7 +211,44 @@ the only error detection a metric has.
 
 ---
 
-## 4. Rupee output crashed the Windows console
+## 4. Two cycles passed, three cycles reported 33 phantom errors
+
+**Symptom.** The recovery loop scored perfectly on two settlement periods:
+every repayment detected, zero false recoveries. Running the same code over
+three periods reported **33 false recoveries** out of roughly 70 claims, while
+the rupee totals stayed exactly right.
+
+**Cause.** `score_recovery` asked "which claims does the ledger show as
+recovered that this period did not repay?" — and the ledger is *cumulative*
+while a period is not. Every claim genuinely recovered in cycle two was still
+marked recovered when cycle three was scored, so cycle three was blamed for all
+of them.
+
+**Fix.** `verify` now records what *it* settled during that run, and scoring
+reads only that. The period's own work is what the period gets judged on.
+
+**Why it is here rather than in a footnote.** The bug was in the scorer again —
+the third one in this log — and it is the same shape as failure 3: a metric
+computed over the wrong scope. But it failed in the opposite direction, and
+that is the interesting part. Failure 3 made the engine look *better* than it
+was and I nearly shipped it. This one made it look catastrophically worse and
+was impossible to ignore.
+
+The reason two cycles could not catch it is worth stating plainly: **with only
+two periods there is no earlier period to be wrongly blamed for.** The bug
+needed a third cycle to exist at all. My tests ran two, because two felt like
+enough to prove "it works across periods". It proved the loop ran; it could not
+have proved the arithmetic held. The regression test now runs three and asserts
+false positives are zero on *every* cycle, not just in total.
+
+**The lesson.** When testing something that accumulates, N=2 is the number that
+feels sufficient and isn't. Two periods exercise "before and after". Three are
+the minimum that exercises "and the one before that", which is where
+accumulated state goes wrong.
+
+---
+
+## 5. Rupee output crashed the Windows console
 
 **Symptom.** The first smoke test of the money formatter died on
 `UnicodeEncodeError: 'charmap' codec can't encode character '₹'`.

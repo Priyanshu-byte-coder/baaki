@@ -76,7 +76,7 @@ def main() -> None:
 
     # ---------------------------------------------------------------- scoring
     rule("DID THE LOOP WORK?")
-    score = verify_mod.score_recovery(cycle2, ledger)
+    score = verify_mod.score_recovery(cycle2, ledger, report)
     print(f"gateway actually repaid   {score['repaid_claims']} claims, "
           f"{rupees(score['repaid_paise'])}")
     print(f"engine detected           {score['detected_claims']} claims, "

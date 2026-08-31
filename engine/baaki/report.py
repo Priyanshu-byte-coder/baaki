@@ -248,6 +248,16 @@ tr.ev.hidden { display: none; }
 .ev-act { margin-top: 12px; font-size: 12.5px; }
 .ev-act b { font-weight: 600; }
 
+.funnel { display: flex; flex-direction: column; gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); }
+.fstage { background: var(--surface); padding: 13px 16px; display: grid;
+  grid-template-columns: 100px 1fr 150px; gap: 14px; align-items: center; }
+.fbar { height: 9px; background: var(--shade); }
+.fbar span { display: block; height: 100%; background: var(--ink-faint); }
+.fstage:last-child .fbar span { background: var(--credit); }
+.fval { text-align: right; font-size: 15px; }
+.fnote { grid-column: 2 / -1; font-size: 12px; color: var(--ink-faint); margin-top: -6px; }
+
 footer {
   border-top: 1px solid var(--rule-firm);
   padding-top: 16px;
@@ -303,7 +313,99 @@ def _esc(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-def render(result, corpus, *, ledger=None, title: str = "Baaki Statement") -> str:
+def _recovery_section(claims) -> str:
+    """The recovery board: what was claimed, and what actually came back.
+
+    Rendered above the exception queue when a claim ledger exists, because it
+    answers the later and more important question. An exception is a problem;
+    a recovered claim is the problem having been dealt with.
+    """
+    if claims is None or not claims.claims:
+        return ""
+
+    from .recovery.claims import ClaimState
+
+    totals = claims.totals()
+    by_reason = claims.recovery_by_reason()
+    states = totals["by_state"]
+
+    not_pursued = [c for c in claims.claims.values()
+                   if c.state == ClaimState.NOT_PURSUED.value]
+    not_pursued_value = sum(c.claimed_paise for c in not_pursued)
+
+    rows = "".join(
+        f"<tr>"
+        f'<td><span class="num code">{_esc(reason)}</span></td>'
+        f'<td class="r num">{row["claims"]}</td>'
+        f'<td class="r num">{_esc(rupees(row["claimed_paise"]))}</td>'
+        f'<td class="r num" style="color:var(--credit)">'
+        f'{_esc(rupees(row["recovered_paise"]))}</td>'
+        f'<td class="r num">{100 * row["rate"]:.0f}%</td>'
+        f"</tr>"
+        for reason, row in sorted(by_reason.items(), key=lambda kv: -kv[1]["claimed_paise"])
+    )
+
+    stages = [
+        ("found", totals["claimed_paise"], "every rupee a claim was opened for"),
+        ("filed", totals["pursued_claimed_paise"], "judged worth the cost of asking"),
+        ("recovered", totals["recovered_paise"], "found again in a later settlement"),
+    ]
+    widest = max((v for _l, v, _n in stages), default=1) or 1
+    funnel = "".join(
+        f'<div class="fstage">'
+        f'<div class="label">{_esc(label)}</div>'
+        f'<div class="fbar"><span style="width:{100 * value / widest:.1f}%"></span></div>'
+        f'<div class="fval num"{" style=\"color:var(--credit)\"" if label == "recovered" else ""}>'
+        f"{_esc(rupees(value))}</div>"
+        f'<div class="fnote">{_esc(note)}</div>'
+        f"</div>"
+        for label, value, note in stages
+    )
+
+    return f"""
+  <section>
+    <h2>Recovery</h2>
+    <p class="lede">Finding the money is half a loop. These claims were filed with
+    the gateway and then hunted down in later settlements &mdash; a claim counts as
+    recovered only when the rupees are found again, never because it was filed.</p>
+
+    <div class="funnel">{funnel}</div>
+
+    <div class="tiles">
+      <div><span class="label">recovery rate</span>
+<span class="v num" style="color:var(--credit)">{100 * totals['recovery_rate']:.1f}%</span></div>
+      <div><span class="label">still outstanding</span>
+<span class="v num">{_esc(rupees(totals['outstanding_paise']))}</span></div>
+      <div><span class="label">claims open</span>
+<span class="v num">{states.get('filed', 0) + states.get('partial', 0)}</span></div>
+      <div><span class="label">recovered</span>
+<span class="v num">{states.get('recovered', 0)}</span></div>
+      <div><span class="label">not worth chasing</span>
+<span class="v num">{len(not_pursued)}</span></div>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>reason</th><th class="r">claims</th><th class="r">claimed</th>
+          <th class="r">recovered</th><th class="r">rate</th>
+        </tr></thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </div>
+
+    <p class="lede"><b>{len(not_pursued)} claims worth
+    {_esc(rupees(not_pursued_value))} were deliberately not pursued.</b> Chasing
+    them would have cost more in analyst time than they are worth, so the engine
+    says so rather than padding the queue. The decision and its arithmetic are on
+    each claim's record, and a single probe from each declined group is filed
+    anyway &mdash; a policy that only files what it expects to win never finds out
+    it was wrong.</p>
+  </section>
+"""
+
+
+def render(result, corpus, *, ledger=None, claims=None, title: str = "Baaki Statement") -> str:
     """Build the full HTML document for a completed run."""
     findings = sorted(
         result.findings,
@@ -437,6 +539,7 @@ def render(result, corpus, *, ledger=None, title: str = "Baaki Statement") -> st
 <span class="v num">{0 if tail.skipped else tail.calls}</span></div>
   </div>
 
+{_recovery_section(claims)}
   <section>
     <h2>By reason</h2>
     <p class="lede">Ordered by rupee impact rather than by count. The two are not the
@@ -490,7 +593,11 @@ def render(result, corpus, *, ledger=None, title: str = "Baaki Statement") -> st
 """
 
 
-def write(result, corpus, out: Path, *, ledger=None, title: str = "Baaki Statement") -> Path:
+def write(result, corpus, out: Path, *, ledger=None, claims=None,
+          title: str = "Baaki Statement") -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render(result, corpus, ledger=ledger, title=title), encoding="utf-8")
+    out.write_text(
+        render(result, corpus, ledger=ledger, claims=claims, title=title),
+        encoding="utf-8",
+    )
     return out

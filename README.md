@@ -3,20 +3,32 @@
 **बाकी** — *the remainder.* What's left over after the books are closed, and nobody can say where it went.
 
 Baaki reconciles a merchant's four sources of payment truth — order ledger, gateway
-payment report, settlement recon report, and bank statement — and reports the money that
-does not add up, with a reason code and the evidence rows behind it.
+payment report, settlement recon report, and bank statement — finds the money that does
+not add up, decides which of it is worth chasing, files those claims, and then **goes
+back the following month to check whether the money actually came back**.
 
-It is not a matcher that reports "97% reconciled". It is an auditor that reports
-**₹ recoverable**, and can show its working for every rupee.
+It is not a matcher that reports "97% reconciled". It closes the loop, and the number it
+finishes on is **₹ recovered**, not ₹ found.
 
 > Razorpay AI Buildathon 2026 — Track 04, AI Finance Controller.
 
 ```
-12,158 records reconciled in 0.01s
-₹7,23,457.53 recoverable across 88 finding(s)
-₹10,98,071.28 in timing and unattributed items (not a loss of principal)
-131 exception(s), 28 need a person (78.6% resolved automatically)
+2026-07   12,158 records, 131 exceptions, 0.01s
+          opened 88 claims · filed ₹7,22,779.56 · not pursued ₹405.52 (40 claims)
+
+2026-08   12,156 records, 127 exceptions, 0.01s
+          recovered ₹2,86,554.06  (25 by reference, 8 by value, 2 partial)
+
+2026-09   12,140 records, 129 exceptions, 0.01s
+          recovered ₹4,85,781.80  (26 by reference, 12 by value, 7 written off)
+
+claimed ₹16,07,690.34 · recovered ₹7,72,335.86 · outstanding ₹6,53,767.13
+recovery rate on pursued claims: 48.1%
+verifier: detected ₹7,72,335.86 of ₹7,72,465.48 actually repaid, 0 false recoveries
 ```
+
+**A claim is recovered when the rupees are found again in a later settlement** — never
+because it was filed, and never because the gateway said so.
 
 ---
 
@@ -66,6 +78,51 @@ misleading headline for a run that had located one rupee in fifteen.
 **Model invocation rate: 6 calls over 12,158 records — 0.0494%.** Its entire measured
 contribution is precision, 96.9% → 100%. It changes no recall and no money.
 
+## Closing the loop
+
+Detection is half a loop. The other half is deciding what to do and checking it worked.
+
+**Triage prices every claim** before anyone touches it:
+
+```
+expected value  =  claimed × P(recovery | reason)  −  cost of asking
+```
+
+Three outcomes, all recorded on the claim: chase it alone, batch it with others of the
+same reason, or drop it. **Dropping is a decision on the record**, not an item quietly
+falling off a list.
+
+Batching is where the value is. Forty fee overcharges of six rupees are individually
+worthless — ₹120 of analyst time to recover ₹6 — and collectively one ticket. In the run
+above, **40 claims worth ₹405 were deliberately not pursued**, because chasing them costs
+more than they return. Baaki says so instead of padding the queue.
+
+**Verification uses the same discipline as bank matching.** A repayment arrives as an
+adjustment line in a later settlement; the verifier finds it by reference, or by value
+uniquely in both directions, and refuses to guess when two claims could match one
+adjustment.
+
+**Recovery rate by reason code** falls out of this, and exists in no other reconciliation
+tool I could find:
+
+| reason | claims | claimed | recovered | rate |
+|---|---|---|---|---|
+| `SETTLED_NOT_IN_BANK` | 12 | ₹15,11,344.82 | ₹7,27,251.64 | 48% |
+| `REFUND_DOUBLE_COUNTED` | 22 | ₹21,420.18 | ₹14,961.88 | 70% |
+| `SETTLEMENT_AMOUNT_MISMATCH` | 9 | ₹19,040.41 | ₹12,377.70 | 65% |
+| `ORDER_PAID_NOT_SETTLED` | 28 | ₹35,653.91 | ₹11,503.06 | 32% |
+| `CHARGEBACK_NETTED_TWICE` | 6 | ₹5,619.51 | ₹755.91 | 13% |
+
+That tells a merchant *which fights are worth having*, and it feeds next month's triage.
+
+**And a pure expected-value policy never learns about what it declines.** Every prior
+started as a guess; if a guess is pessimistic, expected value drops the category forever
+and no evidence ever arrives to correct it. So while a reason has no track record, one
+claim from each rejected batch is filed anyway as a probe. `MDR_OVERCHARGE` was dropped
+40 times and probed once — the probe came back, and its rate is now evidence rather than
+my guess. Exploration stops after five resolved claims: bounded by evidence, not run
+forever.
+
 ## Where AI is used, and where it isn't
 
 The rule the design rests on:
@@ -100,6 +157,9 @@ fixture:
   is byte-identical to a run from memory.
 - Thresholds were only ever inspected on seed 7. Every other seed was run once, after.
 
+The recovery loop is measured the same way: the generator records exactly which claims
+it repaid, the verifier cannot read that record, and detection is scored against it.
+
 `EVAL.md` also states what this *cannot* tell you, and where the engine fails on purpose.
 
 ## Running it
@@ -109,9 +169,12 @@ pip install -e ".[dev]"
 
 baaki doctor                                              # what's configured
 baaki generate --seed 34 --orders 4000 --plan hard --out data/generated/demo
-baaki run --corpus data/generated/demo --ledger data/runs/demo.jsonl
+baaki run --corpus data/generated/demo --ledger data/runs/demo.jsonl --report out.html
 baaki verify --ledger data/runs/demo.jsonl --corpus data/generated/demo
 baaki eval --plan hard --no-tail
+
+# the whole loop, three settlement periods, with a recovery board
+baaki cycle --seed 34 --cycles 3 --out data/runs/loop --report recovery.html
 ```
 
 Stages 1–3 run fully offline. Only the tail needs keys (`.env`, see `.env.example`);
@@ -135,14 +198,14 @@ claiming otherwise would be the easy lie.
 
 ## What broke
 
-[`FAILURES.md`](FAILURES.md) — four entries, written up properly. The one worth reading
+[`FAILURES.md`](FAILURES.md) — five entries, written up properly. The one worth reading
 is #2: a deterministic pass closed a ₹1,10,272 settlement against a ₹36,757 credit at
 confidence 1.00, because it matched on an identifier and never checked the money. That
 bug made the exception queue *shorter*, which is the direction that loses money quietly.
 
 ## Tests
 
-61, running in 1.5s. `pytest`
+75, running in 1.8s. `pytest`
 
 ## Licence
 

@@ -52,6 +52,15 @@ CANDIDATE_WINDOW_DAYS = 3
 #: invites the model to find a subset that sums by coincidence.
 MAX_CANDIDATES = 12
 
+#: Credits classified per call, and the ceiling for that call.
+#:
+#: The tail model is a reasoning model, so its chain-of-thought is billed
+#: against ``max_tokens`` before a single output token is written. Classifying
+#: twenty-three credits in one request spent the whole budget reasoning and
+#: truncated the JSON mid-object. Eight per call leaves ample headroom.
+CLASSIFY_BATCH = 8
+CLASSIFY_MAX_TOKENS = 2_400
+
 RESOLVE_SYSTEM = """You reconcile Indian payment-gateway settlements against bank statement credits.
 
 You are given ONE settlement and a list of candidate bank credits. Decide whether some
@@ -263,34 +272,45 @@ async def _classify(client, corpus: Corpus, credit_ids: list[str], outcome: Tail
     costs a sentence rather than a rupee.
     """
     by_id = {b.bank_txn_id: b for b in corpus.bank_txns}
-    lines = [
-        f"  {cid}  {by_id[cid].value_date:%Y-%m-%d}  "
-        f"{rupees(by_id[cid].credit_paise):>16}  {by_id[cid].narration}"
-        for cid in credit_ids
-        if cid in by_id
-    ]
-    if not lines:
+    known = [cid for cid in credit_ids if cid in by_id]
+    if not known:
         return
 
-    try:
-        payload = await client.complete_json(
-            CLASSIFY_SYSTEM, "CREDITS\n" + "\n".join(lines), max_tokens=1600
-        )
-        outcome.report.calls += 1
-    except Exception as exc:  # noqa: BLE001
-        outcome.report.errors.append(f"classify: {exc}")
-        return
+    allowed = set(known)
 
-    allowed = set(credit_ids)
-    for row in payload.get("classifications", []):
-        credit_id = row.get("credit_id")
-        if credit_id not in allowed:
-            # Grounding applies here too: a classification of a credit that was
-            # never shown is discarded rather than attached to something.
+    # Chunked, because the tail model is a reasoning model and its
+    # chain-of-thought is billed against ``max_tokens``. Asking it to classify
+    # twenty-three credits in one call spends the whole budget thinking and
+    # truncates mid-object -- which the client correctly raises as
+    # TruncatedCompletion, but a raised error classifies nothing. Smaller
+    # batches keep each response comfortably inside the ceiling.
+    for start in range(0, len(known), CLASSIFY_BATCH):
+        batch = known[start : start + CLASSIFY_BATCH]
+        lines = [
+            f"  {cid}  {by_id[cid].value_date:%Y-%m-%d}  "
+            f"{rupees(by_id[cid].credit_paise):>16}  {by_id[cid].narration}"
+            for cid in batch
+        ]
+        try:
+            payload = await client.complete_json(
+                CLASSIFY_SYSTEM, "CREDITS\n" + "\n".join(lines), max_tokens=CLASSIFY_MAX_TOKENS
+            )
+            outcome.report.calls += 1
+        except Exception as exc:  # noqa: BLE001
+            # One bad batch must not lose the others. Classification is
+            # enrichment: a failure here costs a sentence, never a rupee.
+            outcome.report.errors.append(f"classify[{start}:{start + len(batch)}]: {exc}")
             continue
-        source = str(row.get("source", "unknown")).replace("_", " ")
-        why = str(row.get("why", "")).strip()
-        outcome.explanations[credit_id] = f"Likely {source}. {why}".strip()
+
+        for row in payload.get("classifications", []):
+            credit_id = row.get("credit_id")
+            if credit_id not in allowed:
+                # Grounding applies here too: a classification of a credit that
+                # was never shown is discarded rather than attached to something.
+                continue
+            source = str(row.get("source", "unknown")).replace("_", " ")
+            why = str(row.get("why", "")).strip()
+            outcome.explanations[credit_id] = f"Likely {source}. {why}".strip()
 
 
 def apply(findings: list[Finding], outcome: TailOutcome) -> list[Finding]:

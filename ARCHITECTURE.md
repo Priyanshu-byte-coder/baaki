@@ -126,6 +126,53 @@ No money impact, so a poor sentence costs a sentence.
 
 ---
 
+## Which model, and why this one
+
+**The model I wanted was Claude.** Razorpay's own Agent Studio is built on
+Anthropic's Claude Agent SDK, so building the tail stage on the same model
+would have matched the stack this is aimed at. I do not have a paid Anthropic
+key, and I was not going to make the submission depend on a trial credit that
+might expire mid-demo.
+
+**So the tail runs on Groq's free tier**, `openai/gpt-oss-120b`, with
+`gpt-oss-20b` reserved for the self-check pass. Both were verified live against
+the key pool while writing this — present in the model list, not deprecated,
+answering.
+
+This is a deliberately cheap dependency to have made, and the design is why it
+stays cheap:
+
+- **The client is provider-agnostic.** `baaki.llm.client.LLMClient` takes a
+  model id and a key pool; swapping providers is a change to `.env` plus one
+  SDK import, not a change to the pipeline.
+- **Nothing the model says is trusted anyway.** Every proposal is checked by
+  `baaki.match.guardrails` against arithmetic and set membership, so a weaker
+  model produces *fewer accepted proposals*, never wrong ones. The floor does
+  not move with the model; only the ceiling does.
+- **The stage is 0.05% of the work.** Stages one to three close 77% of defects
+  and 100% of the money with no model at all, so the entire model choice is
+  scoped to a residue that is measured and reported separately.
+
+If you hand this an Anthropic key, set `BAAKI_TAIL_MODEL` and point the client
+at the Anthropic SDK. Nothing else in the architecture changes, and the
+guardrails do not care.
+
+### One thing the free tier taught, which generalises
+
+`gpt-oss` models are *reasoning* models: chain-of-thought is billed against
+`max_tokens` before a single output token is written. Asking one to classify
+twenty-three bank credits in a single call spent the whole budget thinking and
+truncated the JSON mid-object.
+
+The client raises that as `TruncatedCompletion` rather than letting a
+half-written object reach a parser — a truncated response is invalid because it
+is *incomplete*, not because the model was confused, and retrying on the same
+budget fails identically. The fix was to batch the work into groups of eight
+rather than to raise the ceiling and hope.
+
+Worth knowing whichever provider you use: with a reasoning model, `max_tokens`
+is a *thinking* budget that the answer has to fit inside afterwards.
+
 ## The guardrail battery
 
 Every tail proposal runs a fixed set of checks. Four are fatal.

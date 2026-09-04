@@ -158,6 +158,14 @@ the model was actually shown, credits summing to the settlement, a ₹25,000 cei
 which a person signs off, and a confidence *we* compute rather than one the model claims
 about itself. Nine adversarial tests cover it, none needing an API key.
 
+**On the model choice.** I wanted Claude — Razorpay's own Agent Studio is built on the
+Claude Agent SDK, so matching that stack was the obvious call. I don't have a paid
+Anthropic key and wasn't going to make the demo depend on a trial credit, so the tail
+runs on Groq's free tier (`gpt-oss-120b`), verified live. The client is
+provider-agnostic and nothing the model says is trusted anyway: a weaker model yields
+*fewer accepted proposals*, never wrong ones. Full reasoning in
+[`ARCHITECTURE.md`](ARCHITECTURE.md).
+
 ## Evaluation, honestly
 
 The corpus is synthetic, and the generator is written as an adversary rather than a

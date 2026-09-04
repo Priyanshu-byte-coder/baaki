@@ -144,7 +144,7 @@ Every tail proposal runs a fixed set of checks. Four are fatal.
 citing a real settlement it was never shown has still guessed; on a
 50,000-record book, plausible identifiers are cheap to guess.
 
-Twelve adversarial tests cover this, none of which need an API key, because the
+Nine adversarial tests cover this, none of which need an API key, because the
 guardrails are pure functions over a proposal. That separation is deliberate:
 the part that must never be wrong is also the part that is cheapest to test.
 

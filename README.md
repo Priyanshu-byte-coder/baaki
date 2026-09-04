@@ -156,7 +156,7 @@ sum correctly and only the narration separates a `RAZORPAY … SETTLEMENT` from 
 Every proposal runs a guardrail battery — schema, taxonomy, evidence grounded in what
 the model was actually shown, credits summing to the settlement, a ₹25,000 ceiling above
 which a person signs off, and a confidence *we* compute rather than one the model claims
-about itself. Twelve adversarial tests cover it, none needing an API key.
+about itself. Nine adversarial tests cover it, none needing an API key.
 
 ## Evaluation, honestly
 

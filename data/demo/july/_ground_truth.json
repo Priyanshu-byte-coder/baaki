@@ -1,0 +1,1021 @@
+{
+  "warning": "Answer key. The engine has no code path that reads this file. It exists so evaluation can measure recall against what was actually planted.",
+  "defects": [
+    {
+      "defect_id": "noise_0034_000",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000012",
+      "impact_paise": 1323129,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_001",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000011",
+      "impact_paise": 4783735,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_002",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000025",
+      "impact_paise": 430492,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_003",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000007",
+      "impact_paise": 322320,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_004",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000005",
+      "impact_paise": 276861,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_005",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000030",
+      "impact_paise": 141903,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_006",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000014",
+      "impact_paise": 2462803,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_007",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000021",
+      "impact_paise": 731890,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_008",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000033",
+      "impact_paise": 2267992,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_009",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000043",
+      "impact_paise": 1838921,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_010",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000015",
+      "impact_paise": 1463237,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_011",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000000",
+      "impact_paise": 555685,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_012",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000001",
+      "impact_paise": 1994180,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_013",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000013",
+      "impact_paise": 2224330,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_014",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000037",
+      "impact_paise": 307810,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_015",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000029",
+      "impact_paise": 4198418,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_016",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000035",
+      "impact_paise": 1678808,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "noise_0034_017",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000028",
+      "impact_paise": 2248939,
+      "note": "Credit from a source other than the gateway."
+    },
+    {
+      "defect_id": "defect_0001_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003878",
+      "impact_paise": 336,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0002_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000655",
+      "impact_paise": 417,
+      "note": "Billed at 245bps against a contracted 200bps."
+    },
+    {
+      "defect_id": "defect_0003_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001985",
+      "impact_paise": 559,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0004_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000664",
+      "impact_paise": 1301,
+      "note": "Billed at 245bps against a contracted 200bps."
+    },
+    {
+      "defect_id": "defect_0005_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002374",
+      "impact_paise": 991,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0006_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002201",
+      "impact_paise": 205,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0007_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003371",
+      "impact_paise": 442,
+      "note": "Billed at 145bps against a contracted 100bps."
+    },
+    {
+      "defect_id": "defect_0008_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003968",
+      "impact_paise": 496,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0009_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001844",
+      "impact_paise": 1174,
+      "note": "Billed at 245bps against a contracted 200bps."
+    },
+    {
+      "defect_id": "defect_0010_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003443",
+      "impact_paise": 26,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0011_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001917",
+      "impact_paise": 503,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0012_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000946",
+      "impact_paise": 84,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0013_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003540",
+      "impact_paise": 406,
+      "note": "Billed at 145bps against a contracted 100bps."
+    },
+    {
+      "defect_id": "defect_0014_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000518",
+      "impact_paise": 455,
+      "note": "Billed at 245bps against a contracted 200bps."
+    },
+    {
+      "defect_id": "defect_0015_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002235",
+      "impact_paise": 572,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0016_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003870",
+      "impact_paise": 2189,
+      "note": "Billed at 235bps against a contracted 190bps."
+    },
+    {
+      "defect_id": "defect_0017_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002872",
+      "impact_paise": 760,
+      "note": "Billed at 235bps against a contracted 190bps."
+    },
+    {
+      "defect_id": "defect_0018_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003522",
+      "impact_paise": 288,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0019_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002662",
+      "impact_paise": 1506,
+      "note": "Billed at 145bps against a contracted 100bps."
+    },
+    {
+      "defect_id": "defect_0020_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001873",
+      "impact_paise": 759,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0021_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000797",
+      "impact_paise": 34,
+      "note": "Billed at 245bps against a contracted 200bps."
+    },
+    {
+      "defect_id": "defect_0022_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002651",
+      "impact_paise": 133,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0023_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002707",
+      "impact_paise": 581,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0024_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003259",
+      "impact_paise": 520,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0025_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002782",
+      "impact_paise": 1174,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0026_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002538",
+      "impact_paise": 131,
+      "note": "Billed at 235bps against a contracted 190bps."
+    },
+    {
+      "defect_id": "defect_0027_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002691",
+      "impact_paise": 670,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0028_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001935",
+      "impact_paise": 185,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0029_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001225",
+      "impact_paise": 546,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0030_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000688",
+      "impact_paise": 139,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0031_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002982",
+      "impact_paise": 1213,
+      "note": "Billed at 245bps against a contracted 200bps."
+    },
+    {
+      "defect_id": "defect_0032_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001353",
+      "impact_paise": 352,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0033_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002406",
+      "impact_paise": 391,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0034_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001110",
+      "impact_paise": 306,
+      "note": "Billed at 245bps against a contracted 200bps."
+    },
+    {
+      "defect_id": "defect_0035_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002488",
+      "impact_paise": 852,
+      "note": "Billed at 375bps against a contracted 330bps."
+    },
+    {
+      "defect_id": "defect_0036_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001895",
+      "impact_paise": 1342,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0037_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002244",
+      "impact_paise": 165,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0038_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000545",
+      "impact_paise": 284,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0039_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000644",
+      "impact_paise": 1383,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0040_mdr_overcharge",
+      "reason": "MDR_OVERCHARGE",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002044",
+      "impact_paise": 171,
+      "note": "Billed at 45bps against a contracted 0bps."
+    },
+    {
+      "defect_id": "defect_0041_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001835",
+      "impact_paise": 3432,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0042_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003275",
+      "impact_paise": 6227,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0043_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001528",
+      "impact_paise": 9664,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0044_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002737",
+      "impact_paise": 32136,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0045_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001146",
+      "impact_paise": 6744,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0046_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000692",
+      "impact_paise": 19703,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0047_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002856",
+      "impact_paise": 16156,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0048_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000925",
+      "impact_paise": 11422,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0049_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002270",
+      "impact_paise": 43913,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0050_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002386",
+      "impact_paise": 32484,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0051_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002051",
+      "impact_paise": 72357,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0052_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000779",
+      "impact_paise": 52025,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0053_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000411",
+      "impact_paise": 10896,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0054_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001811",
+      "impact_paise": 6333,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0055_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000570",
+      "impact_paise": 5416,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0056_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000319",
+      "impact_paise": 4254,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0057_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000256",
+      "impact_paise": 20529,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0058_gst_miscalc",
+      "reason": "GST_MISCALC",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002443",
+      "impact_paise": 12388,
+      "note": "Tax billed as 18% of gross rather than 18% of fee."
+    },
+    {
+      "defect_id": "defect_0059_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001199",
+      "impact_paise": 52390,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0060_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003043",
+      "impact_paise": 265461,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0061_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003639",
+      "impact_paise": 205338,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0062_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001401",
+      "impact_paise": 141036,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0063_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000833",
+      "impact_paise": 18700,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0064_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001037",
+      "impact_paise": 186948,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0065_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002180",
+      "impact_paise": 154228,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0066_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034000117",
+      "impact_paise": 204818,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0067_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034002097",
+      "impact_paise": 44544,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0068_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034001954",
+      "impact_paise": 27790,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0069_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003685",
+      "impact_paise": 45017,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0070_order_paid_not_settled",
+      "reason": "ORDER_PAID_NOT_SETTLED",
+      "entity_type": "payment",
+      "entity_id": "pay_0034003008",
+      "impact_paise": 20156,
+      "note": "Captured payment absent from every settlement."
+    },
+    {
+      "defect_id": "defect_0071_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034001288",
+      "impact_paise": 28805,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0072_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034001099",
+      "impact_paise": 53664,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0073_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034003192",
+      "impact_paise": 559637,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0074_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034001432",
+      "impact_paise": 131485,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0075_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034002836",
+      "impact_paise": 165822,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0076_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034001001",
+      "impact_paise": 149716,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0077_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034003009",
+      "impact_paise": 55007,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0078_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034003306",
+      "impact_paise": 189142,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0079_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034000236",
+      "impact_paise": 66835,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0080_duplicate_payment",
+      "reason": "DUPLICATE_PAYMENT",
+      "entity_type": "order",
+      "entity_id": "order_0034000723",
+      "impact_paise": 61749,
+      "note": "Two captured payments against a single order."
+    },
+    {
+      "defect_id": "defect_0081_refund_double_counted",
+      "reason": "REFUND_DOUBLE_COUNTED",
+      "entity_type": "refund",
+      "entity_id": "rfnd_0034000051",
+      "impact_paise": 333943,
+      "note": "Deducted in both setl_003400003 and setl_003400019."
+    },
+    {
+      "defect_id": "defect_0082_refund_double_counted",
+      "reason": "REFUND_DOUBLE_COUNTED",
+      "entity_type": "refund",
+      "entity_id": "rfnd_0034002859",
+      "impact_paise": 60726,
+      "note": "Deducted in both setl_003400038 and setl_003400018."
+    },
+    {
+      "defect_id": "defect_0083_refund_double_counted",
+      "reason": "REFUND_DOUBLE_COUNTED",
+      "entity_type": "refund",
+      "entity_id": "rfnd_0034002921",
+      "impact_paise": 269796,
+      "note": "Deducted in both setl_003400025 and setl_003400011."
+    },
+    {
+      "defect_id": "defect_0084_refund_double_counted",
+      "reason": "REFUND_DOUBLE_COUNTED",
+      "entity_type": "refund",
+      "entity_id": "rfnd_0034002816",
+      "impact_paise": 109533,
+      "note": "Deducted in both setl_003400027 and setl_003400006."
+    },
+    {
+      "defect_id": "defect_0085_refund_double_counted",
+      "reason": "REFUND_DOUBLE_COUNTED",
+      "entity_type": "refund",
+      "entity_id": "rfnd_0034001234",
+      "impact_paise": 109259,
+      "note": "Deducted in both setl_003400022 and setl_003400007."
+    },
+    {
+      "defect_id": "defect_0086_refund_double_counted",
+      "reason": "REFUND_DOUBLE_COUNTED",
+      "entity_type": "refund",
+      "entity_id": "rfnd_0034001597",
+      "impact_paise": 69259,
+      "note": "Deducted in both setl_003400012 and setl_003400016."
+    },
+    {
+      "defect_id": "defect_0087_refund_double_counted",
+      "reason": "REFUND_DOUBLE_COUNTED",
+      "entity_type": "refund",
+      "entity_id": "rfnd_0034000492",
+      "impact_paise": 32637,
+      "note": "Deducted in both setl_003400030 and setl_003400000."
+    },
+    {
+      "defect_id": "defect_0088_refund_double_counted",
+      "reason": "REFUND_DOUBLE_COUNTED",
+      "entity_type": "refund",
+      "entity_id": "rfnd_0034002008",
+      "impact_paise": 49800,
+      "note": "Deducted in both setl_003400032 and setl_003400020."
+    },
+    {
+      "defect_id": "defect_0089_chargeback_netted_twice",
+      "reason": "CHARGEBACK_NETTED_TWICE",
+      "entity_type": "dispute",
+      "entity_id": "disp_0034001281",
+      "impact_paise": 41460,
+      "note": "Deducted in both setl_003400031 and setl_003400025."
+    },
+    {
+      "defect_id": "defect_0090_chargeback_netted_twice",
+      "reason": "CHARGEBACK_NETTED_TWICE",
+      "entity_type": "dispute",
+      "entity_id": "disp_0034003600",
+      "impact_paise": 4900,
+      "note": "Deducted in both setl_003400023 and setl_003400027."
+    },
+    {
+      "defect_id": "defect_0091_settlement_amount_mismatch",
+      "reason": "SETTLEMENT_AMOUNT_MISMATCH",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400016",
+      "impact_paise": 48804,
+      "note": "Header net differs from the sum of the settlement lines."
+    },
+    {
+      "defect_id": "defect_0092_settlement_amount_mismatch",
+      "reason": "SETTLEMENT_AMOUNT_MISMATCH",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400014",
+      "impact_paise": 25823,
+      "note": "Header net differs from the sum of the settlement lines."
+    },
+    {
+      "defect_id": "defect_0093_settlement_amount_mismatch",
+      "reason": "SETTLEMENT_AMOUNT_MISMATCH",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400029",
+      "impact_paise": 438100,
+      "note": "Header net differs from the sum of the settlement lines."
+    },
+    {
+      "defect_id": "defect_0094_settled_not_in_bank",
+      "reason": "SETTLED_NOT_IN_BANK",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400013",
+      "impact_paise": 15656191,
+      "note": "UTR HDFCN20260716169940206 has no corresponding bank credit."
+    },
+    {
+      "defect_id": "defect_0095_settled_not_in_bank",
+      "reason": "SETTLED_NOT_IN_BANK",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400012",
+      "impact_paise": 17082801,
+      "note": "UTR SBINN20260715142969276 has no corresponding bank credit."
+    },
+    {
+      "defect_id": "defect_0096_settled_not_in_bank",
+      "reason": "SETTLED_NOT_IN_BANK",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400006",
+      "impact_paise": 15166252,
+      "note": "UTR HDFCN20260709830243921 has no corresponding bank credit."
+    },
+    {
+      "defect_id": "defect_0097_settlement_on_hold",
+      "reason": "SETTLEMENT_ON_HOLD",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400000",
+      "impact_paise": 12952359,
+      "note": "Gateway placed the settlement on hold; no credit is due yet."
+    },
+    {
+      "defect_id": "defect_0098_settlement_on_hold",
+      "reason": "SETTLEMENT_ON_HOLD",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400026",
+      "impact_paise": 13417919,
+      "note": "Gateway placed the settlement on hold; no credit is due yet."
+    },
+    {
+      "defect_id": "defect_0099_late_settlement",
+      "reason": "LATE_SETTLEMENT",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400024",
+      "impact_paise": 0,
+      "note": "Settled T+6 against a contracted T+2."
+    },
+    {
+      "defect_id": "defect_0100_late_settlement",
+      "reason": "LATE_SETTLEMENT",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400018",
+      "impact_paise": 0,
+      "note": "Settled T+6 against a contracted T+2."
+    },
+    {
+      "defect_id": "defect_0101_late_settlement",
+      "reason": "LATE_SETTLEMENT",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400021",
+      "impact_paise": 0,
+      "note": "Settled T+6 against a contracted T+2."
+    },
+    {
+      "defect_id": "defect_0102_partial_bank_credit",
+      "reason": "PARTIAL_BANK_CREDIT",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400027",
+      "impact_paise": 0,
+      "note": "Paid out as two bank credits that together match the settlement."
+    },
+    {
+      "defect_id": "defect_0103_partial_bank_credit",
+      "reason": "PARTIAL_BANK_CREDIT",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400001",
+      "impact_paise": 0,
+      "note": "Paid out as two bank credits that together match the settlement."
+    },
+    {
+      "defect_id": "defect_0104_partial_bank_credit",
+      "reason": "PARTIAL_BANK_CREDIT",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400003",
+      "impact_paise": 0,
+      "note": "Paid out as two bank credits that together match the settlement."
+    },
+    {
+      "defect_id": "defect_0105_bank_credit_unidentified",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000009c",
+      "impact_paise": 10543689,
+      "note": "Unrelated credit coinciding in value and date with a settlement."
+    },
+    {
+      "defect_id": "defect_0106_bank_credit_unidentified",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000042c",
+      "impact_paise": 9432135,
+      "note": "Unrelated credit coinciding in value and date with a settlement."
+    },
+    {
+      "defect_id": "defect_0107_bank_credit_unidentified",
+      "reason": "BANK_CREDIT_UNIDENTIFIED",
+      "entity_type": "bank_txn",
+      "entity_id": "bank_0034000034c",
+      "impact_paise": 11657788,
+      "note": "Unrelated credit coinciding in value and date with a settlement."
+    },
+    {
+      "defect_id": "defect_0108_partial_bank_credit",
+      "reason": "PARTIAL_BANK_CREDIT",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400023",
+      "impact_paise": 0,
+      "note": "Paid out as 4 credits, beyond the bounded search cap."
+    },
+    {
+      "defect_id": "defect_0109_partial_bank_credit",
+      "reason": "PARTIAL_BANK_CREDIT",
+      "entity_type": "settlement",
+      "entity_id": "setl_003400015",
+      "impact_paise": 0,
+      "note": "Paid out as 4 credits, beyond the bounded search cap."
+    }
+  ]
+}

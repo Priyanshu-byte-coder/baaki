@@ -78,6 +78,21 @@ misleading headline for a run that had located one rupee in fifteen.
 **Model invocation rate: 6 calls over 12,158 records — 0.0494%.** Its entire measured
 contribution is precision, 96.9% → 100%. It changes no recall and no money.
 
+## Match rate
+
+The track asks for it by name. Per hop, because one number hides which join is failing:
+
+| hop | matched | of | rate |
+|---|---|---|---|
+| payment → settlement line | 3,572 | 3,584 | 99.67% |
+| settlement → bank credit | 24 | 29 | 82.76% |
+| bank credit → attributed | 33 | 56 | 58.93% |
+| **overall — records in no exception** | 12,027 | 12,158 | **98.92%** |
+
+A single "98.92% matched" would be true and almost useless. It is not the headline
+here for the reason the ablation shows: after the deterministic stages the engine has
+matched **77% of the defects and located 6.5% of the money**.
+
 ## Closing the loop
 
 Detection is half a loop. The other half is deciding what to do and checking it worked.

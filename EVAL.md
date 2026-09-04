@@ -135,6 +135,78 @@ compute. It is in the table because it is what happened.
 
 ---
 
+## Match rate
+
+The track asks for it by name, so here it is — per hop, because one blended
+number hides which join is failing, and the failing join is the diagnosis.
+
+Seed 34, hard mode, 12,158 records:
+
+| hop | matched | of | rate |
+|---|---|---|---|
+| payment → settlement line | 3,572 | 3,584 | **99.67%** |
+| settlement → bank credit | 24 | 29 | **82.76%** |
+| bank credit → attributed to a settlement | 33 | 56 | **58.93%** |
+| overall — records named in no exception | 12,027 | 12,158 | **98.92%** |
+
+Look at how far those diverge. A single "98.92% matched" would be true and
+almost useless: the payment-to-settlement join is nearly perfect while only
+59% of bank credits attribute to a gateway settlement — because most of the
+rest are genuinely somebody else's money, and saying so is the finding.
+
+And this is why match rate is not the headline anywhere else in this project.
+Read it against the ablation below: after the deterministic stages the engine
+has matched 77% of the defects and located **6.5% of the money**. A tool
+reporting the first number and not the second is describing a run that found
+one rupee in fifteen.
+
+Held settlements and wholly negative batches are excluded from the
+settlement-to-bank denominator. They have no credit *by design*, and counting
+them as unmatched would penalise the engine for being right.
+
+## Recovery loop
+
+Detection is scored above. The loop is scored the same way, and separately: the
+generator records exactly which claims it repaid in a later period, the verifier
+cannot read that record, and detection is measured against it.
+
+Three cycles, seed 34, 4,000 orders per period:
+
+| | |
+|---|---|
+| claimed | ₹16,07,690.34 |
+| **verified recovered** | **₹7,72,335.86** |
+| outstanding | ₹6,53,767.13 |
+| recovery rate on pursued claims | 48.1% |
+| repayments genuinely made | ₹7,72,465.48 |
+| **detected by the verifier** | **₹7,72,335.86 — 99.98% of value** |
+| **false recoveries** | **0** |
+
+Recovery rate by reason code, which is the number that decides next month's
+triage:
+
+| reason | claims | claimed | recovered | rate |
+|---|---|---|---|---|
+| `SETTLED_NOT_IN_BANK` | 12 | ₹15,11,344.82 | ₹7,27,251.64 | 48% |
+| `REFUND_DOUBLE_COUNTED` | 22 | ₹21,420.18 | ₹14,961.88 | 70% |
+| `SETTLEMENT_AMOUNT_MISMATCH` | 9 | ₹19,040.41 | ₹12,377.70 | 65% |
+| `ORDER_PAID_NOT_SETTLED` | 28 | ₹35,653.91 | ₹11,503.06 | 32% |
+| `CHARGEBACK_NETTED_TWICE` | 6 | ₹5,619.51 | ₹755.91 | 13% |
+| `MDR_OVERCHARGE` | 3 | ₹57.87 | ₹21.89 | 38% |
+
+Claims triage dropped are excluded from the denominator. Including them would
+measure our own triage rather than the gateway's behaviour.
+
+**What the triage decided.** 40 claims worth ₹405.52 were not pursued: each
+costs roughly ₹120 of analyst time to chase and returns about ₹6. That decision
+and its arithmetic sit on each claim's record, so the policy itself can be
+audited later.
+
+**The exploration probe.** `MDR_OVERCHARGE` was dropped 40 times, which meant
+its prior — a guess — would never be corrected. One claim from the rejected
+batch is filed anyway while a reason has fewer than five resolved claims. It
+came back, and the rate is now evidence rather than assumption.
+
 ## Stage ablation — the design argument
 
 `python engine/run_ablation.py 34 4000`, cumulative, cheapest stage first:

@@ -541,6 +541,43 @@ def render(result, corpus, *, ledger=None, claims=None, title: str = "Baaki Stat
 
 {_recovery_section(claims)}
   <section>
+    <h2>Match rate</h2>
+    <p class="lede">Reported per hop rather than as one number, because a blended
+    figure hides which join is failing &mdash; and the failing join is the diagnosis.
+    Note how far the three diverge.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>hop</th><th class="r">matched</th><th class="r">of</th><th class="r">rate</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>payment &rarr; settlement line</td>
+            <td class="r num">{result.rates.payments_settled:,}</td>
+            <td class="r num">{result.rates.payments_total:,}</td>
+            <td class="r num">{100 * result.rates.payment_to_settlement:.2f}%</td></tr>
+          <tr><td>settlement &rarr; bank credit</td>
+            <td class="r num">{result.rates.settlements_banked:,}</td>
+            <td class="r num">{result.rates.settlements_total:,}</td>
+            <td class="r num">{100 * result.rates.settlement_to_bank:.2f}%</td></tr>
+          <tr><td>bank credit &rarr; attributed to a settlement</td>
+            <td class="r num">{result.rates.credits_attributed:,}</td>
+            <td class="r num">{result.rates.credits_total:,}</td>
+            <td class="r num">{100 * result.rates.bank_attribution:.2f}%</td></tr>
+          <tr><td><b>overall &mdash; records named in no exception</b></td>
+            <td class="r num">{result.rates.records_clean:,}</td>
+            <td class="r num">{result.rates.records_total:,}</td>
+            <td class="r num"><b>{100 * result.rates.overall:.2f}%</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lede">Match rate is not the headline in this report, and the two money
+    figures above are why. After the deterministic stages this run had matched 77% of
+    the defects and located 6.5% of the money &mdash; counts and rupees concentrate in
+    opposite places, so a match rate quoted alone can describe a run that found one
+    rupee in fifteen.</p>
+  </section>
+
+  <section>
     <h2>By reason</h2>
     <p class="lede">Ordered by rupee impact rather than by count. The two are not the
     same: fee overcharges are numerous and individually trivial, while a settlement

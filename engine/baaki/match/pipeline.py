@@ -27,10 +27,103 @@ from .llm import TailReport
 
 
 @dataclass(slots=True)
+class MatchRates:
+    """Match rate, per hop of the chain and overall.
+
+    Reported because it is the conventional measure of a reconciliation run and
+    because it was asked for. It is deliberately **not** the headline anywhere
+    in this project, for a reason the ablation makes concrete: after the first
+    two stages the engine has matched 77% of the defects and located 6.5% of
+    the money. Counts and rupees concentrate in opposite places, so a match rate
+    quoted alone describes a run that may have found one rupee in fifteen.
+
+    Broken out per hop rather than given as one number, because "94% matched"
+    hides which join is failing, and the join that is failing is the whole
+    diagnosis.
+    """
+
+    payments_total: int = 0
+    payments_settled: int = 0
+    settlements_total: int = 0
+    settlements_banked: int = 0
+    credits_total: int = 0
+    credits_attributed: int = 0
+    records_total: int = 0
+    records_clean: int = 0
+
+    @staticmethod
+    def _rate(part: int, whole: int) -> float:
+        return part / whole if whole else 1.0
+
+    @property
+    def payment_to_settlement(self) -> float:
+        return self._rate(self.payments_settled, self.payments_total)
+
+    @property
+    def settlement_to_bank(self) -> float:
+        return self._rate(self.settlements_banked, self.settlements_total)
+
+    @property
+    def bank_attribution(self) -> float:
+        return self._rate(self.credits_attributed, self.credits_total)
+
+    @property
+    def overall(self) -> float:
+        """Share of records not named in any exception."""
+        return self._rate(self.records_clean, self.records_total)
+
+    def as_dict(self) -> dict:
+        return {
+            "overall": self.overall,
+            "payment_to_settlement": self.payment_to_settlement,
+            "settlement_to_bank": self.settlement_to_bank,
+            "bank_attribution": self.bank_attribution,
+            "records_total": self.records_total,
+            "records_clean": self.records_clean,
+        }
+
+
+def match_rates(corpus: Corpus, findings: list[Finding], bank_stats: dict[str, int]) -> MatchRates:
+    """Compute match rate per hop from the corpus and the run's findings."""
+    from ..models import EntityType, PaymentStatus, SettlementStatus
+
+    captured = [p for p in corpus.payments if p.status is PaymentStatus.CAPTURED]
+    settled_ids = {
+        row.entity_id for row in corpus.settlement_rows if row.entity_type is EntityType.PAYMENT
+    }
+
+    # A settlement is only "expecting" a bank credit if it was actually paid
+    # out: held settlements and wholly negative batches are excluded, because
+    # counting them as unmatched would penalise the engine for being right.
+    expecting = [
+        s
+        for s in corpus.settlements
+        if s.status is SettlementStatus.PROCESSED and s.net_paise > 0
+    ]
+    unmatched_settlements = bank_stats.get("unmatched_settlements", 0)
+    credits = [b for b in corpus.bank_txns if b.credit_paise > 0]
+    unmatched_credits = bank_stats.get("unmatched_credits", 0)
+
+    flagged = {f.entity_id for f in findings}
+
+    return MatchRates(
+        payments_total=len(captured),
+        payments_settled=sum(1 for p in captured if p.payment_id in settled_ids),
+        settlements_total=len(expecting),
+        settlements_banked=len(expecting) - unmatched_settlements,
+        credits_total=len(credits),
+        credits_attributed=len(credits) - unmatched_credits,
+        records_total=corpus.record_count(),
+        records_clean=corpus.record_count() - len(flagged),
+    )
+
+
+@dataclass(slots=True)
 class RunResult:
     findings: list[Finding] = field(default_factory=list)
     residue: Residue = field(default_factory=Residue)
     bank_stats: dict[str, int] = field(default_factory=dict)
+    rates: MatchRates = field(default_factory=MatchRates)
     tail: TailReport = field(default_factory=TailReport)
     elapsed_offline: float = 0.0
     elapsed_total: float = 0.0
@@ -57,6 +150,7 @@ def run_offline(corpus: Corpus) -> RunResult:
     result.findings += bank_findings
     result.residue = residue
     result.bank_stats = stats
+    result.rates = match_rates(corpus, result.findings, stats)
     result.elapsed_offline = time.perf_counter() - started
     result.elapsed_total = result.elapsed_offline
     return result
@@ -75,5 +169,6 @@ def run(corpus: Corpus, *, client=None, max_concurrency: int = 2) -> RunResult:
     )
     result.findings = llm.apply(result.findings, outcome)
     result.tail = outcome.report
+    result.rates = match_rates(corpus, result.findings, result.bank_stats)
     result.elapsed_total = result.elapsed_offline + (time.perf_counter() - started)
     return result

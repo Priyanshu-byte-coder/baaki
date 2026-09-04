@@ -1,15 +1,19 @@
 """Render a reconciliation run as a self-contained HTML statement.
 
-No server, no build step, no external requests. The output is one file an
-analyst can open, mail to their accountant, or attach to a ticket raised with
-the gateway -- which is the point, since a finding only matters once somebody
-acts on it.
+No server, no build step, no external requests. One file an analyst can open,
+mail to their accountant, or attach to a ticket raised with the gateway --
+which is the point, since a finding only matters once somebody acts on it.
 
-The visual language is deliberately a ledger rather than a dashboard: hairline
-rules, square corners, every figure in a tabular monospace face, and red
-reserved for one thing only -- recoverable principal. Accounting has had a
-colour convention for money for four hundred years and there is no reason to
-invent another.
+The page is written for a person deciding what to do on a Monday morning, not
+for a machine dumping its state. So it answers, in order: *am I all right*,
+*how much can I get back*, *what do I do first*, and only then *show me
+everything*. The exception table is the last section, not the first.
+
+Two colours carry meaning and nothing else is coloured: a deep ledger red for
+money that can be claimed back, a deep green for money that came back.
+Accounting has had a colour convention for four hundred years and there is no
+reason to invent another. Committed to a light ground on purpose -- this is a
+statement, and statements are printed on paper.
 """
 
 from __future__ import annotations
@@ -29,50 +33,25 @@ SEVERITY_ORDER = {
     Severity.INFO: 4,
 }
 
+#: Rows of the exception queue shown before the reveal. Enough to see the shape
+#: of the problem; not so many that the page becomes a data dump.
+QUEUE_PREVIEW = 12
+
 _CSS = """
 :root {
-  --paper:      #fcfcfa;
-  --surface:    #ffffff;
-  --ink:        #16202b;
-  --ink-soft:   #55636f;
-  --ink-faint:  #8b97a2;
-  --rule:       #dde3e8;
-  --rule-firm:  #c3ccd4;
-  --debit:      #b3341e;
-  --credit:     #2f6b4f;
-  --review:     #96661c;
-  --shade:      #f2f4f6;
-  --focus:      #16202b;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper:     #0f1620;
-    --surface:   #141d28;
-    --ink:       #e4e9ee;
-    --ink-soft:  #9aa7b3;
-    --ink-faint: #6b7887;
-    --rule:      #24313f;
-    --rule-firm: #35465a;
-    --debit:     #e4674c;
-    --credit:    #5fa37e;
-    --review:    #c9964a;
-    --shade:     #18222e;
-    --focus:     #e4e9ee;
-  }
-}
-:root[data-theme="dark"] {
-  --paper:     #0f1620;
-  --surface:   #141d28;
-  --ink:       #e4e9ee;
-  --ink-soft:  #9aa7b3;
-  --ink-faint: #6b7887;
-  --rule:      #24313f;
-  --rule-firm: #35465a;
-  --debit:     #e4674c;
-  --credit:    #5fa37e;
-  --review:    #c9964a;
-  --shade:     #18222e;
-  --focus:     #e4e9ee;
+  --paper:     #fafaf8;
+  --card:      #ffffff;
+  --ink:       #191c1f;
+  --ink-soft:  #5a6470;
+  --ink-faint: #949ca6;
+  --rule:      #e6e8ea;
+  --rule-soft: #f0f1f2;
+  --debit:     #a3271a;
+  --debit-wash:#fdf5f3;
+  --credit:    #2c6a4a;
+  --credit-wash:#f2f8f4;
+  --review:    #8a6416;
+  --shade:     #f6f6f4;
 }
 
 * { box-sizing: border-box; }
@@ -82,18 +61,19 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 16px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .sheet {
-  max-width: 1180px;
+  max-width: 940px;
   margin: 0 auto;
-  padding: 40px 28px 96px;
+  padding: 48px 32px 120px;
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 64px;
 }
 
 .num {
@@ -102,9 +82,13 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
+.serif {
+  font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
 .label {
-  font-size: 10.5px;
-  letter-spacing: 0.13em;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-faint);
   font-weight: 600;
@@ -113,163 +97,239 @@ body {
 /* masthead ------------------------------------------------------------- */
 
 .masthead {
-  border-top: 2px solid var(--ink);
-  border-bottom: 1px solid var(--rule-firm);
-  padding: 18px 0 16px;
   display: flex;
   flex-wrap: wrap;
-  gap: 28px;
+  gap: 20px 40px;
   align-items: baseline;
   justify-content: space-between;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
 }
-.wordmark {
+.mark {
   font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  font-size: 34px;
-  line-height: 1;
+  font-size: 26px;
   margin: 0;
-  letter-spacing: -0.01em;
+  font-weight: 600;
 }
-.wordmark small {
-  display: block;
-  font-family: inherit;
-  font-size: 13px;
-  font-style: italic;
+.mark span { color: var(--ink-faint); font-weight: 400; font-style: italic; font-size: 15px; }
+.meta { display: flex; gap: 28px; flex-wrap: wrap; }
+.meta div { display: flex; flex-direction: column; gap: 2px; }
+.meta .v { font-size: 13px; color: var(--ink-soft); }
+
+/* the verdict ---------------------------------------------------------- */
+
+.verdict { display: flex; flex-direction: column; gap: 18px; }
+.headline {
+  font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.18;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  max-width: 22ch;
+}
+.headline .amount { color: var(--debit); display: block; }
+.headline .amount.zero { color: var(--credit); }
+.subhead {
+  margin: 0;
+  font-size: 18px;
   color: var(--ink-soft);
-  letter-spacing: 0;
-  margin-top: 6px;
+  max-width: 56ch;
+  line-height: 1.55;
 }
-.stamp { display: flex; gap: 26px; flex-wrap: wrap; text-align: right; }
-.stamp div { display: flex; flex-direction: column; gap: 3px; }
-.stamp .v { font-size: 13px; }
 
-/* money line ----------------------------------------------------------- */
-
-.money {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1px;
-  background: var(--rule);
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.split > div {
+  background: var(--card);
   border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.money > div { background: var(--surface); padding: 22px 24px; display: flex; flex-direction: column; gap: 8px; }
-.money .fig { font-size: 30px; line-height: 1.1; letter-spacing: -0.02em; }
-.money .fig.debit { color: var(--debit); }
-.money .note { font-size: 12.5px; color: var(--ink-soft); }
-
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1px;
-  background: var(--rule);
-  border: 1px solid var(--rule);
-}
-.tiles > div { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 5px; }
-.tiles .v { font-size: 19px; }
+.split .claim { background: var(--debit-wash); border-color: #f0dcd7; }
+.split .fig { font-size: 26px; line-height: 1.15; letter-spacing: -0.01em; }
+.split .claim .fig { color: var(--debit); }
+.split p { margin: 0; font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
 
 /* sections ------------------------------------------------------------- */
 
-section { display: flex; flex-direction: column; gap: 14px; }
+section { display: flex; flex-direction: column; gap: 20px; }
 h2 {
   font-family: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
   margin: 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--rule-firm);
-  text-wrap: balance;
+  letter-spacing: -0.01em;
 }
-.lede { margin: 0; color: var(--ink-soft); font-size: 13.5px; max-width: 68ch; }
+.lede { margin: -8px 0 0; color: var(--ink-soft); font-size: 15px; max-width: 64ch; }
+.note { margin: 0; color: var(--ink-faint); font-size: 13.5px; max-width: 68ch; line-height: 1.55; }
+
+/* do this first -------------------------------------------------------- */
+
+.actions { display: flex; flex-direction: column; gap: 0; }
+.action {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 4px 18px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.action:first-child { border-top: 1px solid var(--rule); }
+.rank {
+  font-family: ui-serif, Georgia, serif;
+  font-size: 21px;
+  color: var(--ink-faint);
+  line-height: 1.2;
+}
+.action h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.35; }
+.action .money { font-size: 18px; white-space: nowrap; color: var(--debit); }
+.action .money.neutral { color: var(--ink-soft); }
+.action .why { grid-column: 2 / -1; margin: 0; font-size: 14.5px; color: var(--ink-soft); max-width: 62ch; }
+.action .count { grid-column: 2 / -1; margin: 0; font-size: 13px; color: var(--ink-faint); }
+
+/* tables --------------------------------------------------------------- */
 
 .scroll { overflow-x: auto; }
-
-table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
 th {
   text-align: left;
-  font-size: 10.5px;
-  letter-spacing: 0.11em;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-faint);
   font-weight: 600;
-  padding: 0 12px 8px;
-  border-bottom: 1px solid var(--rule-firm);
+  padding: 0 14px 10px 0;
+  border-bottom: 1px solid var(--rule);
   white-space: nowrap;
 }
-td { padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td { padding: 12px 14px 12px 0; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+th:last-child, td:last-child { padding-right: 0; }
 th.r, td.r { text-align: right; }
-tbody tr:hover { background: var(--shade); }
+tbody tr:last-child td { border-bottom: 1px solid var(--rule); }
 
-.sev { display: inline-block; width: 3px; height: 13px; vertical-align: -2px; margin-right: 8px; }
+.reason-name { font-weight: 500; }
+.kind { font-size: 13px; color: var(--ink-faint); }
+.claimable { color: var(--debit); }
+.recovered { color: var(--credit); }
+
+/* match rate ----------------------------------------------------------- */
+
+.hops { display: flex; flex-direction: column; }
+.hop {
+  display: grid;
+  grid-template-columns: 1fr 120px 74px;
+  gap: 18px;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.hop:last-child { border-bottom: none; border-top: 1px solid var(--rule); font-weight: 600; }
+.hop .bar { height: 6px; background: var(--shade); border-radius: 3px; overflow: hidden; }
+.hop .bar span { display: block; height: 100%; background: var(--ink-faint); }
+.hop:last-child .bar span { background: var(--ink); }
+.hop .pct { text-align: right; font-size: 15px; }
+.hop .of { font-size: 13px; color: var(--ink-faint); }
+
+/* recovery funnel ------------------------------------------------------ */
+
+.funnel { display: flex; flex-direction: column; }
+.fstage {
+  display: grid;
+  grid-template-columns: 190px 1fr 170px;
+  gap: 24px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.fstage:last-child { border-bottom: none; }
+.fbar { height: 10px; background: var(--shade); border-radius: 5px; overflow: hidden; }
+.fbar span { display: block; height: 100%; background: #c9ccd0; }
+.fstage:last-child .fbar span { background: var(--credit); }
+.fval { text-align: right; font-size: 17px; }
+.fstage:last-child .fval { color: var(--credit); font-weight: 600; }
+.fname { font-size: 15px; color: var(--ink); font-weight: 500; }
+.fname .label { display: block; margin-top: 1px; font-weight: 600; }
+
+.callout {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--ink-faint);
+  border-radius: 3px;
+  padding: 18px 22px;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.callout b { color: var(--ink); font-weight: 600; }
+
+/* exception queue ------------------------------------------------------ */
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button {
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--ink-faint); }
+button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+button:focus-visible, tr.row:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+tr.row { cursor: pointer; }
+tr.row:hover td { background: var(--shade); }
+tr.row .disclose { color: var(--ink-faint); font-family: ui-monospace, monospace; margin-right: 10px; }
+tr.row.open .disclose::before { content: "\\2013"; }
+tr.row .disclose::before { content: "+"; }
+tr.ev.hidden, tr.row.hidden { display: none; }
+tr.ev > td { background: var(--shade); padding: 4px 14px 22px 30px; border-bottom: 1px solid var(--rule); }
+.ev-why { margin: 6px 0 16px; max-width: 78ch; font-size: 14.5px; color: var(--ink); }
+.ev-list { display: flex; flex-direction: column; gap: 5px; margin: 8px 0 0; padding: 0; list-style: none; }
+.ev-list li { font-size: 13px; color: var(--ink-soft); }
+.ev-act { margin: 16px 0 0; font-size: 14px; }
+.ev-act b { font-weight: 600; }
+.more { align-self: flex-start; }
+
+.sev { display: inline-block; width: 3px; height: 14px; vertical-align: -2px; margin-right: 10px; border-radius: 1px; }
 .sev-critical { background: var(--debit); }
 .sev-high     { background: var(--review); }
 .sev-medium   { background: var(--ink-faint); }
-.sev-low      { background: var(--rule-firm); }
-.sev-info     { background: var(--rule-firm); }
+.sev-low, .sev-info { background: #d4d8dc; }
 
-.code { font-size: 12px; letter-spacing: 0.02em; }
-.stage {
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  border: 1px solid var(--rule-firm);
-  padding: 1px 5px;
-  white-space: nowrap;
-}
-.flag { color: var(--review); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
-
-/* queue ---------------------------------------------------------------- */
-
-.filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-button.f {
-  font: inherit;
-  font-size: 12px;
-  color: var(--ink-soft);
-  background: transparent;
-  border: 1px solid var(--rule-firm);
-  padding: 4px 11px;
-  cursor: pointer;
-}
-button.f[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-button.f:focus-visible, tr.row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-
-tr.row { cursor: pointer; }
-tr.row td:first-child::before {
-  content: "+";
-  color: var(--ink-faint);
-  margin-right: 9px;
-  font-family: ui-monospace, monospace;
-}
-tr.row.open td:first-child::before { content: "\\2212"; }
-tr.ev > td { background: var(--shade); padding: 0 12px 16px 40px; }
-tr.ev.hidden { display: none; }
-.ev-why { margin: 12px 0 12px; max-width: 84ch; font-size: 13px; }
-.ev-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.ev-list li { font-size: 12px; color: var(--ink-soft); }
-.ev-act { margin-top: 12px; font-size: 12.5px; }
-.ev-act b { font-weight: 600; }
-
-.funnel { display: flex; flex-direction: column; gap: 1px; background: var(--rule);
-  border: 1px solid var(--rule); }
-.fstage { background: var(--surface); padding: 13px 16px; display: grid;
-  grid-template-columns: 100px 1fr 150px; gap: 14px; align-items: center; }
-.fbar { height: 9px; background: var(--shade); }
-.fbar span { display: block; height: 100%; background: var(--ink-faint); }
-.fstage:last-child .fbar span { background: var(--credit); }
-.fval { text-align: right; font-size: 15px; }
-.fnote { grid-column: 2 / -1; font-size: 12px; color: var(--ink-faint); margin-top: -6px; }
+.stage-tag { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-faint); }
+.flag { color: var(--review); font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
 
 footer {
-  border-top: 1px solid var(--rule-firm);
-  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  padding-top: 22px;
   color: var(--ink-faint);
-  font-size: 12px;
+  font-size: 13px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  line-height: 1.6;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+@media (max-width: 620px) {
+  .sheet { padding: 32px 20px 80px; gap: 48px; }
+  .action { grid-template-columns: 26px 1fr; }
+  .action .money { grid-column: 2; }
+  .hop { grid-template-columns: 1fr 80px; }
+  .fstage { grid-template-columns: 1fr 130px; }
+  .hop .bar, .fbar { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media print {
+  .filters, button { display: none; }
+  tr.ev { display: table-row !important; }
+  .sheet { max-width: none; padding: 0; }
 }
 """
 
@@ -290,18 +350,33 @@ _JS = """
     });
   });
 
+  var expanded = false;
+  var more = document.getElementById('more');
+  if (more) {
+    more.addEventListener('click', function () {
+      expanded = !expanded;
+      rows.forEach(function (row) {
+        if (parseInt(row.dataset.idx, 10) >= """ + str(QUEUE_PREVIEW) + """) {
+          row.classList.toggle('hidden', !expanded);
+        }
+      });
+      more.textContent = expanded ? 'Show fewer' : more.dataset.label;
+    });
+  }
+
   var buttons = Array.prototype.slice.call(document.querySelectorAll('button.f'));
   buttons.forEach(function (btn) {
     btn.addEventListener('click', function () {
       buttons.forEach(function (b) { b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
       var want = btn.dataset.filter;
+      expanded = true;
+      if (more) { more.textContent = 'Show fewer'; }
       rows.forEach(function (row) {
         var show = want === 'all'
           || (want === 'review' ? row.dataset.review === '1' : row.dataset.sev === want);
-        row.style.display = show ? '' : 'none';
+        row.classList.toggle('hidden', !show);
         var ev = document.getElementById('ev-' + row.dataset.idx);
-        if (ev && !show) { ev.classList.add('hidden'); row.classList.remove('open'); }
-        if (ev && show && !row.classList.contains('open')) { ev.classList.add('hidden'); }
+        if (ev) { ev.classList.add('hidden'); row.classList.remove('open'); }
       });
     });
   });
@@ -313,13 +388,58 @@ def _esc(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-def _recovery_section(claims) -> str:
-    """The recovery board: what was claimed, and what actually came back.
+def _verdict(findings, recoverable: int, needs_human: int) -> tuple[str, str]:
+    """The one sentence a person reads first."""
+    if not findings:
+        return (
+            '<span class="amount zero">Everything reconciles.</span>',
+            "Every payment traced to a settlement, and every settlement to a bank credit. "
+            "Nothing needs your attention.",
+        )
+    claimable = sum(1 for f in findings if f.recoverable)
+    head = (
+        f'<span class="amount num">{_esc(rupees(recoverable))}</span>'
+        f"is recoverable."
+    )
+    sub = (
+        f"Across {claimable} finding{'s' if claimable != 1 else ''} where the money does "
+        f"not add up, each with the records that prove it. "
+        f"{needs_human} item{'s' if needs_human != 1 else ''} could not be resolved "
+        f"automatically and {'need' if needs_human != 1 else 'needs'} a person."
+    )
+    return head, sub
 
-    Rendered above the exception queue when a claim ledger exists, because it
-    answers the later and more important question. An exception is a problem;
-    a recovered claim is the problem having been dealt with.
+
+def _actions(by_reason: dict) -> str:
+    """The three things worth doing first, ranked by money.
+
+    Ranked because it is genuinely a priority order -- the number means "do this
+    one before that one", not decoration.
     """
+    ranked = sorted(
+        by_reason.items(), key=lambda kv: -sum(f.impact_paise for f in kv[1])
+    )[:3]
+    out = []
+    for i, (reason, group) in enumerate(ranked, start=1):
+        meta = REASON_META[reason]
+        total = sum(f.impact_paise for f in group)
+        money_class = "money num" if meta["recoverable"] else "money num neutral"
+        out.append(
+            f'<div class="action">'
+            f'<div class="rank serif">{i}</div>'
+            f"<h3>{_esc(meta['action'])}</h3>"
+            f'<div class="{money_class}">{_esc(rupees(total))}</div>'
+            f'<p class="why">{_esc(meta["title"])}.'
+            f'{"" if meta["recoverable"] else " Not a loss of principal."}</p>'
+            f'<p class="count num">{len(group)} item{"s" if len(group) != 1 else ""} '
+            f"&middot; {_esc(reason.value.lower().replace('_', ' '))}</p>"
+            f"</div>"
+        )
+    return "".join(out)
+
+
+def _recovery_section(claims) -> str:
+    """What was claimed, and what actually came back."""
     if claims is None or not claims.claims:
         return ""
 
@@ -328,61 +448,43 @@ def _recovery_section(claims) -> str:
     totals = claims.totals()
     by_reason = claims.recovery_by_reason()
     states = totals["by_state"]
-
-    not_pursued = [c for c in claims.claims.values()
-                   if c.state == ClaimState.NOT_PURSUED.value]
+    not_pursued = [c for c in claims.claims.values() if c.state == ClaimState.NOT_PURSUED.value]
     not_pursued_value = sum(c.claimed_paise for c in not_pursued)
+
+    stages = [
+        ("Found", totals["claimed_paise"], "claims opened"),
+        ("Filed", totals["pursued_claimed_paise"], "worth the cost of asking"),
+        ("Recovered", totals["recovered_paise"], "found in a later settlement"),
+    ]
+    widest = max((v for _l, v, _n in stages), default=1) or 1
+    funnel = "".join(
+        f'<div class="fstage">'
+        f'<div class="fname">{_esc(label)}<br><span class="label">{_esc(note)}</span></div>'
+        f'<div class="fbar"><span style="width:{100 * value / widest:.1f}%"></span></div>'
+        f'<div class="fval num">{_esc(rupees(value))}</div>'
+        f"</div>"
+        for label, value, note in stages
+    )
 
     rows = "".join(
         f"<tr>"
-        f'<td><span class="num code">{_esc(reason)}</span></td>'
+        f'<td class="reason-name">{_esc(reason.lower().replace("_", " "))}</td>'
         f'<td class="r num">{row["claims"]}</td>'
         f'<td class="r num">{_esc(rupees(row["claimed_paise"]))}</td>'
-        f'<td class="r num" style="color:var(--credit)">'
-        f'{_esc(rupees(row["recovered_paise"]))}</td>'
+        f'<td class="r num recovered">{_esc(rupees(row["recovered_paise"]))}</td>'
         f'<td class="r num">{100 * row["rate"]:.0f}%</td>'
         f"</tr>"
         for reason, row in sorted(by_reason.items(), key=lambda kv: -kv[1]["claimed_paise"])
     )
 
-    stages = [
-        ("found", totals["claimed_paise"], "every rupee a claim was opened for"),
-        ("filed", totals["pursued_claimed_paise"], "judged worth the cost of asking"),
-        ("recovered", totals["recovered_paise"], "found again in a later settlement"),
-    ]
-    widest = max((v for _l, v, _n in stages), default=1) or 1
-    funnel = "".join(
-        f'<div class="fstage">'
-        f'<div class="label">{_esc(label)}</div>'
-        f'<div class="fbar"><span style="width:{100 * value / widest:.1f}%"></span></div>'
-        f'<div class="fval num"{" style=\"color:var(--credit)\"" if label == "recovered" else ""}>'
-        f"{_esc(rupees(value))}</div>"
-        f'<div class="fnote">{_esc(note)}</div>'
-        f"</div>"
-        for label, value, note in stages
-    )
-
     return f"""
   <section>
-    <h2>Recovery</h2>
-    <p class="lede">Finding the money is half a loop. These claims were filed with
-    the gateway and then hunted down in later settlements &mdash; a claim counts as
-    recovered only when the rupees are found again, never because it was filed.</p>
+    <h2>What came back</h2>
+    <p class="lede">A claim counts as recovered only when the rupees are found again in a
+    later settlement &mdash; never because it was filed, and never because the gateway
+    said so.</p>
 
     <div class="funnel">{funnel}</div>
-
-    <div class="tiles">
-      <div><span class="label">recovery rate</span>
-<span class="v num" style="color:var(--credit)">{100 * totals['recovery_rate']:.1f}%</span></div>
-      <div><span class="label">still outstanding</span>
-<span class="v num">{_esc(rupees(totals['outstanding_paise']))}</span></div>
-      <div><span class="label">claims open</span>
-<span class="v num">{states.get('filed', 0) + states.get('partial', 0)}</span></div>
-      <div><span class="label">recovered</span>
-<span class="v num">{states.get('recovered', 0)}</span></div>
-      <div><span class="label">not worth chasing</span>
-<span class="v num">{len(not_pursued)}</span></div>
-    </div>
 
     <div class="scroll">
       <table>
@@ -393,14 +495,17 @@ def _recovery_section(claims) -> str:
         <tbody>{rows}</tbody>
       </table>
     </div>
+    <p class="note">Recovery rate per reason tells you which claims are worth making.
+    {states.get("filed", 0) + states.get("partial", 0)} are still open.</p>
 
-    <p class="lede"><b>{len(not_pursued)} claims worth
-    {_esc(rupees(not_pursued_value))} were deliberately not pursued.</b> Chasing
-    them would have cost more in analyst time than they are worth, so the engine
-    says so rather than padding the queue. The decision and its arithmetic are on
-    each claim's record, and a single probe from each declined group is filed
-    anyway &mdash; a policy that only files what it expects to win never finds out
-    it was wrong.</p>
+    <div class="callout">
+      <b>{len(not_pursued)} claims worth {_esc(rupees(not_pursued_value))} were
+      deliberately not pursued.</b> Chasing them would cost more in analyst time than
+      they return, so they are closed with the arithmetic on the record rather than left
+      to pad the queue. One claim from each declined group is still filed as a probe
+      &mdash; a policy that only files what it expects to win never finds out it was
+      wrong.
+    </div>
   </section>
 """
 
@@ -408,221 +513,213 @@ def _recovery_section(claims) -> str:
 def render(result, corpus, *, ledger=None, claims=None, title: str = "Baaki Statement") -> str:
     """Build the full HTML document for a completed run."""
     findings = sorted(
-        result.findings,
-        key=lambda f: (SEVERITY_ORDER[f.severity], -f.impact_paise),
+        result.findings, key=lambda f: (SEVERITY_ORDER[f.severity], -f.impact_paise)
     )
 
     recoverable = sum(f.impact_paise for f in findings if f.recoverable)
     other = sum(f.impact_paise for f in findings if not f.recoverable)
-    recoverable_n = sum(1 for f in findings if f.recoverable)
     needs_human = sum(1 for f in findings if f.requires_human)
 
     by_reason: dict[Reason, list] = {}
     for f in findings:
         by_reason.setdefault(f.reason, []).append(f)
 
-    by_stage: dict[str, int] = {}
-    for f in findings:
-        by_stage[f.stage.value] = by_stage.get(f.stage.value, 0) + 1
+    head, sub = _verdict(findings, recoverable, needs_human)
+    rates = result.rates
 
-    fingerprint = ledger.fingerprint()[:16] if ledger else "not recorded"
-    corpus_sha = ledger.corpus_sha[:16] if ledger else "not recorded"
-
-    reason_rows = []
-    for reason, group in sorted(
-        by_reason.items(), key=lambda kv: -sum(f.impact_paise for f in kv[1])
-    ):
-        meta = REASON_META[reason]
-        total = sum(f.impact_paise for f in group)
-        reason_rows.append(
-            f"<tr>"
-            f'<td><span class="sev sev-{meta["severity"].value}"></span>'
-            f'<span class="num code">{_esc(reason.value)}</span></td>'
-            f'<td class="r num">{len(group)}</td>'
-            f'<td class="r num"{" style=\"color:var(--debit)\"" if meta["recoverable"] and total else ""}>'
-            f"{_esc(rupees(total))}</td>"
-            f'<td>{"recoverable" if meta["recoverable"] else "timing / attribution"}</td>'
-            f"<td>{_esc(meta['action'])}</td>"
-            f"</tr>"
+    reason_rows = "".join(
+        f"<tr>"
+        f'<td><span class="sev sev-{REASON_META[reason]["severity"].value}"></span>'
+        f'<span class="reason-name">{_esc(reason.value.lower().replace("_", " "))}</span></td>'
+        f'<td class="r num">{len(group)}</td>'
+        f'<td class="r num{" claimable" if REASON_META[reason]["recoverable"] else ""}">'
+        f"{_esc(rupees(sum(f.impact_paise for f in group)))}</td>"
+        f'<td class="kind">{"claimable" if REASON_META[reason]["recoverable"] else "timing / attribution"}</td>'
+        f"</tr>"
+        for reason, group in sorted(
+            by_reason.items(), key=lambda kv: -sum(f.impact_paise for f in kv[1])
         )
+    )
 
-    queue_rows = []
+    hops = [
+        ("Payment to settlement line", rates.payments_settled, rates.payments_total,
+         rates.payment_to_settlement),
+        ("Settlement to bank credit", rates.settlements_banked, rates.settlements_total,
+         rates.settlement_to_bank),
+        ("Bank credit attributed", rates.credits_attributed, rates.credits_total,
+         rates.bank_attribution),
+        ("Records in no exception", rates.records_clean, rates.records_total, rates.overall),
+    ]
+    hop_rows = "".join(
+        f'<div class="hop">'
+        f'<div>{_esc(name)} <span class="of num">{part:,} of {whole:,}</span></div>'
+        f'<div class="bar"><span style="width:{100 * rate:.1f}%"></span></div>'
+        f'<div class="pct num">{100 * rate:.1f}%</div>'
+        f"</div>"
+        for name, part, whole, rate in hops
+    )
+
+    queue = []
     for idx, f in enumerate(findings):
         meta = REASON_META[f.reason]
         evidence = "".join(f"<li>{_esc(e.render())}</li>" for e in f.evidence)
-        flag = '<span class="flag">needs a person</span>' if f.requires_human else ""
-        amount_style = ' style="color:var(--debit)"' if f.recoverable and f.impact_paise else ""
-        queue_rows.append(
-            f'<tr class="row" tabindex="0" role="button" aria-expanded="false" '
+        hidden = " hidden" if idx >= QUEUE_PREVIEW else ""
+        queue.append(
+            f'<tr class="row{hidden}" tabindex="0" role="button" aria-expanded="false" '
             f'data-idx="{idx}" data-sev="{meta["severity"].value}" '
             f'data-review="{1 if f.requires_human else 0}">'
-            f'<td><span class="sev sev-{meta["severity"].value}"></span>'
-            f'<span class="num code">{_esc(f.entity_id)}</span></td>'
-            f'<td class="num code">{_esc(f.reason.value)}</td>'
-            f'<td class="r num"{amount_style}>{_esc(rupees(f.impact_paise))}</td>'
-            f'<td><span class="stage">{_esc(f.stage.value)}</span></td>'
-            f'<td class="r num">{f.confidence:.2f}</td>'
-            f"<td>{flag}</td>"
+            f'<td><span class="disclose"></span>'
+            f'<span class="sev sev-{meta["severity"].value}"></span>'
+            f'<span class="num">{_esc(f.entity_id)}</span></td>'
+            f'<td class="reason-name">{_esc(f.reason.value.lower().replace("_", " "))}</td>'
+            f'<td class="r num{" claimable" if f.recoverable and f.impact_paise else ""}">'
+            f"{_esc(rupees(f.impact_paise))}</td>"
+            f'<td class="stage-tag">{_esc(f.stage.value)}</td>'
+            f'<td>{"<span class=\'flag\'>needs a person</span>" if f.requires_human else ""}</td>'
             f"</tr>"
-            f'<tr class="ev hidden" id="ev-{idx}"><td colspan="6">'
+            f'<tr class="ev hidden" id="ev-{idx}"><td colspan="5">'
             f'<p class="ev-why">{_esc(f.explanation)}</p>'
-            f'<div class="label">evidence</div>'
+            f'<div class="label">the records this came from</div>'
             f'<ul class="ev-list num">{evidence}</ul>'
-            f'<p class="ev-act"><b>Next step.</b> {_esc(meta["action"])}</p>'
+            f'<p class="ev-act"><b>Do this.</b> {_esc(meta["action"])}</p>'
             f"</td></tr>"
         )
 
+    hidden_count = max(0, len(findings) - QUEUE_PREVIEW)
+    more_button = (
+        f'<button class="more" id="more" data-label="Show all {len(findings)} exceptions">'
+        f"Show all {len(findings)} exceptions</button>"
+        if hidden_count
+        else ""
+    )
+
     tail = result.tail
-    if tail.skipped:
-        tail_note = (
-            "The tail stage did not run, so items it might have resolved are left "
-            "escalated. Every figure above comes from arithmetic and exact joins."
-        )
-    else:
-        tail_note = (
-            f"The tail stage made {tail.calls} model call(s) against "
+    tail_note = (
+        "No model was used in this run. Every figure above comes from arithmetic and "
+        "exact joins."
+        if tail.skipped
+        else (
+            f"A model was consulted {tail.calls} time{'s' if tail.calls != 1 else ''} across "
             f"{corpus.record_count():,} records "
-            f"({100 * tail.calls / max(1, corpus.record_count()):.4f}%), producing "
-            f"{tail.proposals} proposal(s) of which {tail.accepted} passed the "
-            f"guardrails and {tail.rejected} were rejected. A proposed match is "
-            f"accepted because the credits sum to the settlement, never because the "
-            f"model was confident."
+            f"({100 * tail.calls / max(1, corpus.record_count()):.3f}%), on cases arithmetic "
+            f"could not settle. Of {tail.proposals} proposal(s) it made, {tail.accepted} "
+            f"passed the guardrails and {tail.rejected} were rejected. A proposed match is "
+            f"accepted because the credits sum to the settlement, never because the model "
+            f"was confident."
         )
+    )
 
-    stage_line = ", ".join(f"{n} {stage}" for stage, n in sorted(by_stage.items()))
+    fingerprint = ledger.fingerprint()[:16] if ledger else None
+    fingerprint_line = (
+        f'Offline decisions replay to fingerprint <span class="num">{_esc(fingerprint)}</span>; '
+        f'run <span class="num">baaki verify</span> to confirm.'
+        if fingerprint
+        else "Run <span class=\"num\">baaki verify</span> to replay these decisions."
+    )
 
-    return f"""<title>{_esc(title)}</title>
+    # The charset declaration is not optional. Opened as a local file, with no
+    # HTTP header to say otherwise, a browser falls back to latin-1 and every
+    # rupee sign renders as "â‚¹" and the Devanagari wordmark as mojibake. The
+    # file is correct UTF-8 on disk; without this line nothing tells the browser
+    # that, and the whole statement reads as garbage to the one person it was
+    # written for.
+    return f"""<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{_esc(title)}</title>
 <style>{_CSS}</style>
 <div class="sheet">
 
   <header class="masthead">
-    <h1 class="wordmark">बाकी
-      <small>the remainder &mdash; what the books cannot account for</small>
-    </h1>
-    <div class="stamp">
+    <h1 class="mark">बाकी <span>&mdash; the remainder</span></h1>
+    <div class="meta">
       <div><span class="label">records</span>
 <span class="v num">{corpus.record_count():,}</span></div>
       <div><span class="label">reconciled in</span>
 <span class="v num">{result.elapsed_total:.2f}s</span></div>
-      <div><span class="label">ledger fingerprint</span>
-<span class="v num">{_esc(fingerprint)}</span></div>
-      <div><span class="label">corpus</span>
-<span class="v num">{_esc(corpus_sha)}</span></div>
+      <div><span class="label">exceptions</span>
+<span class="v num">{len(findings)}</span></div>
     </div>
   </header>
 
-  <div class="money">
-    <div>
-      <span class="label">recoverable principal</span>
-      <span class="fig num debit">{_esc(rupees(recoverable))}</span>
-      <span class="note">Across {recoverable_n} finding(s). Money the merchant can
-      claim back: fees above contract, tax miscalculated, deductions taken twice,
-      payments that never settled.</span>
+  <div class="verdict">
+    <h2 class="headline">{head}</h2>
+    <p class="subhead">{sub}</p>
+  </div>
+
+  <div class="split">
+    <div class="claim">
+      <span class="label">you can claim this back</span>
+      <span class="fig num">{_esc(rupees(recoverable))}</span>
+      <p>Fees billed above the contracted rate, tax computed wrongly, deductions taken
+      twice, payments that never settled, settlements that never reached the bank.</p>
     </div>
     <div>
       <span class="label">timing and attribution</span>
       <span class="fig num">{_esc(rupees(other))}</span>
-      <span class="note">Not a loss of principal. Held settlements, late payouts and
-      credits that need identifying before they are booked as revenue. Reported
-      separately so the figure on the left stays honest.</span>
+      <p>Not a loss of principal. Money held by the gateway, settlements that arrived
+      late, and credits that need identifying before they are booked as revenue. Kept
+      separate so the figure on the left stays honest.</p>
     </div>
   </div>
 
-  <div class="tiles">
-    <div><span class="label">exceptions</span><span class="v num">{len(findings)}</span></div>
-    <div><span class="label">need a person</span><span class="v num">{needs_human}</span></div>
-    <div><span class="label">resolved automatically</span>
-<span class="v num">{100 * result.coverage():.1f}%</span></div>
-    <div><span class="label">reason codes hit</span>
-<span class="v num">{len(by_reason)} of {len(list(Reason))}</span></div>
-    <div><span class="label">model calls</span>
-<span class="v num">{0 if tail.skipped else tail.calls}</span></div>
-  </div>
-
+  <section>
+    <h2>Do this first</h2>
+    <p class="lede">Ordered by how much money is behind each one, not by how many rows.</p>
+    <div class="actions">{_actions(by_reason)}</div>
+  </section>
 {_recovery_section(claims)}
   <section>
-    <h2>Match rate</h2>
-    <p class="lede">Reported per hop rather than as one number, because a blended
-    figure hides which join is failing &mdash; and the failing join is the diagnosis.
-    Note how far the three diverge.</p>
+    <h2>Everything, by reason</h2>
     <div class="scroll">
       <table>
         <thead><tr>
-          <th>hop</th><th class="r">matched</th><th class="r">of</th><th class="r">rate</th>
+          <th>reason</th><th class="r">items</th><th class="r">amount</th><th>kind</th>
         </tr></thead>
-        <tbody>
-          <tr><td>payment &rarr; settlement line</td>
-            <td class="r num">{result.rates.payments_settled:,}</td>
-            <td class="r num">{result.rates.payments_total:,}</td>
-            <td class="r num">{100 * result.rates.payment_to_settlement:.2f}%</td></tr>
-          <tr><td>settlement &rarr; bank credit</td>
-            <td class="r num">{result.rates.settlements_banked:,}</td>
-            <td class="r num">{result.rates.settlements_total:,}</td>
-            <td class="r num">{100 * result.rates.settlement_to_bank:.2f}%</td></tr>
-          <tr><td>bank credit &rarr; attributed to a settlement</td>
-            <td class="r num">{result.rates.credits_attributed:,}</td>
-            <td class="r num">{result.rates.credits_total:,}</td>
-            <td class="r num">{100 * result.rates.bank_attribution:.2f}%</td></tr>
-          <tr><td><b>overall &mdash; records named in no exception</b></td>
-            <td class="r num">{result.rates.records_clean:,}</td>
-            <td class="r num">{result.rates.records_total:,}</td>
-            <td class="r num"><b>{100 * result.rates.overall:.2f}%</b></td></tr>
-        </tbody>
+        <tbody>{reason_rows}</tbody>
       </table>
     </div>
-    <p class="lede">Match rate is not the headline in this report, and the two money
-    figures above are why. After the deterministic stages this run had matched 77% of
-    the defects and located 6.5% of the money &mdash; counts and rupees concentrate in
-    opposite places, so a match rate quoted alone can describe a run that found one
-    rupee in fifteen.</p>
+    <p class="note">Fee overcharges are numerous and individually small; one settlement
+    that never reached the bank is a single row worth six figures. Sorting by money
+    rather than by count is the difference between a useful queue and a long one.</p>
   </section>
 
   <section>
-    <h2>By reason</h2>
-    <p class="lede">Ordered by rupee impact rather than by count. The two are not the
-    same: fee overcharges are numerous and individually trivial, while a settlement
-    that never reached the bank is a single row worth six figures.</p>
-    <div class="scroll">
-      <table>
-        <thead><tr>
-          <th>reason</th><th class="r">n</th><th class="r">impact</th>
-          <th>kind</th><th>next step</th>
-        </tr></thead>
-        <tbody>{"".join(reason_rows)}</tbody>
-      </table>
-    </div>
+    <h2>How much matched</h2>
+    <p class="lede">Broken out per hop of the chain. A single blended figure would hide
+    which join is failing, and the failing join is the diagnosis.</p>
+    <div class="hops">{hop_rows}</div>
+    <p class="note">Notice how far these diverge. Nearly every payment reaches a
+    settlement, while only a minority of bank credits attribute to a gateway settlement
+    &mdash; because most of the rest are genuinely somebody else's money, and saying so
+    is the finding.</p>
   </section>
 
   <section>
-    <h2>Exception queue</h2>
-    <p class="lede">Most severe first. Open a row for the records behind it &mdash;
-    every finding cites the rows an analyst would need to check the arithmetic by
-    hand, or to attach to a ticket.</p>
+    <h2>Every exception</h2>
+    <p class="lede">Most serious first. Open any row to see the records behind it &mdash;
+    enough to check the arithmetic by hand, or to attach to a ticket.</p>
     <div class="filters">
-      <span class="label" style="margin-right:4px">show</span>
-      <button class="f" data-filter="all" aria-pressed="true">all</button>
-      <button class="f" data-filter="critical" aria-pressed="false">critical</button>
-      <button class="f" data-filter="high" aria-pressed="false">high</button>
-      <button class="f" data-filter="medium" aria-pressed="false">medium</button>
-      <button class="f" data-filter="review" aria-pressed="false">needs a person</button>
+      <span class="label" style="margin-right:6px">Show</span>
+      <button class="f" data-filter="all" aria-pressed="true">Everything</button>
+      <button class="f" data-filter="critical" aria-pressed="false">Critical</button>
+      <button class="f" data-filter="high" aria-pressed="false">High</button>
+      <button class="f" data-filter="review" aria-pressed="false">Needs a person</button>
     </div>
     <div class="scroll">
       <table>
         <thead><tr>
-          <th>entity</th><th>reason</th><th class="r">impact</th>
-          <th>decided by</th><th class="r">conf.</th><th></th>
+          <th>record</th><th>reason</th><th class="r">amount</th><th>decided by</th><th></th>
         </tr></thead>
-        <tbody>{"".join(queue_rows)}</tbody>
+        <tbody>{"".join(queue)}</tbody>
       </table>
     </div>
+    {more_button}
   </section>
 
   <footer>
-    <div>Decided by: {_esc(stage_line)}.</div>
-    <div>{_esc(tail_note)}</div>
-    <div>Generated {datetime.now(UTC):%d %b %Y %H:%M} UTC. Offline stages are a pure
-    function of the books and replay to the fingerprint above; run
-    <span class="num">baaki verify</span> to confirm.</div>
+    <div>{tail_note}</div>
+    <div>{fingerprint_line}</div>
+    <div>Generated {datetime.now(UTC):%d %B %Y, %H:%M} UTC by baaki.</div>
   </footer>
 
 </div>

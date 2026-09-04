@@ -1,8 +1,0 @@
-method,network,rate_bps,fixed_paise
-upi,none,0,0
-netbanking,none,190,0
-wallet,none,200,0
-card,rupay,100,0
-card,visa,200,0
-card,mastercard,200,0
-card,amex,300,0

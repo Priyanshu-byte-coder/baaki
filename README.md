@@ -185,6 +185,14 @@ it repaid, the verifier cannot read that record, and detection is scored against
 
 `EVAL.md` also states what this *cannot* tell you, and where the engine fails on purpose.
 
+## See the output without running anything
+
+[`samples/statement.html`](samples/statement.html) — one month reconciled.
+[`samples/recovery.html`](samples/recovery.html) — three cycles of the recovery loop.
+
+Both are self-contained: no server, no build, no external requests. Open either in a
+browser and click any row to see the records behind that finding.
+
 ## Running it
 
 ```bash

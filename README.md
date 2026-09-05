@@ -185,6 +185,39 @@ it repaid, the verifier cannot read that record, and detection is scored against
 
 `EVAL.md` also states what this *cannot* tell you, and where the engine fails on purpose.
 
+---
+
+## What it looks like
+
+The statement opens with an answer, not a table.
+
+![The verdict: how much is recoverable, split from money that is merely held or late](docs/images/01-verdict.jpg)
+
+Then the three things worth doing first — ranked by the money behind each, with the
+instruction as the heading rather than a reason code.
+
+![Do this first: three ranked actions with the money behind each](docs/images/02-do-this-first.png)
+
+Match rate is reported **per hop**, because one blended figure hides which join is
+failing — and the failing join is the diagnosis. Note how far the three diverge.
+
+![Match rate per hop: 99.7% payment to settlement, 82.8% settlement to bank, 58.9% bank credit attributed](docs/images/03-match-rate.png)
+
+Every finding opens to the records it came from — enough to redo the arithmetic by
+hand, or paste into a support ticket.
+
+![An expanded finding showing the settlement, its UTR, its value and the zero candidate credits behind it](docs/images/04-evidence.png)
+
+Across settlement cycles, the recovery loop reports what was found, what was judged
+worth filing, and what actually came back.
+
+![Recovery funnel: found, filed, and recovered, with the recovered bar visibly shorter](docs/images/05-recovery-funnel.png)
+
+Which produces recovery rate per reason code — the number that decides next month's
+triage — and an explicit account of what was deliberately *not* chased.
+
+![Recovery rate by reason code, and a note that 127 claims worth 2,194.85 were deliberately not pursued](docs/images/06-recovery-rate.png)
+
 ## See the output without running anything
 
 [`samples/statement.html`](samples/statement.html) — one month reconciled.
